@@ -5,16 +5,26 @@ import { useGameStore } from '../store/gameStore';
 
 export type MultiplayerPhase = 'OFFLINE' | 'CONNECTING' | 'LOBBY' | 'WAITING_ROOM' | 'PLAYING' | 'DISCONNECTED';
 
+export interface DisconnectedPlayer {
+  slotIndex: number;
+  playerId: string;
+  name: string;
+  disconnectedAt: number; // Date.now()
+  reconnectDeadline: number; // disconnectedAt + 120_000
+}
+
 interface MultiplayerState {
   mpPhase: MultiplayerPhase;
   roomCode: string | null;
   myPlayerId: string | null;
   mySlotIndex: number | null;
   reconnectToken: string | null;
+  disconnectedAt: number | null;  // when THIS client disconnected (for countdown)
   lobbyPlayers: LobbyPlayer[];
   hostSlotIndex: number;
   socketConnected: boolean;
   error: string | null;
+  disconnectedPlayers: DisconnectedPlayer[]; // other players who are currently offline
 
   // Actions
   createRoom: (playerName: string, color: string) => void;
@@ -32,10 +42,12 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => ({
   myPlayerId: null,
   mySlotIndex: null,
   reconnectToken: null,
+  disconnectedAt: null,
   lobbyPlayers: [],
   hostSlotIndex: 0,
   socketConnected: false,
   error: null,
+  disconnectedPlayers: [],
 
   clearError: () => set({ error: null }),
 
@@ -67,7 +79,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => ({
     socket.on('disconnect', () => {
       set({ socketConnected: false });
       if (get().mpPhase === 'PLAYING') {
-        set({ mpPhase: 'DISCONNECTED' });
+        set({ mpPhase: 'DISCONNECTED', disconnectedAt: Date.now() });
       }
     });
 
@@ -87,7 +99,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => ({
     });
 
     socket.on('room:reconnected', ({ slotIndex, playerId, gameState }) => {
-      set({ mySlotIndex: slotIndex, myPlayerId: playerId, mpPhase: 'PLAYING' });
+      set({ mySlotIndex: slotIndex, myPlayerId: playerId, mpPhase: 'PLAYING', disconnectedAt: null });
       _activateMultiplayerInterceptor();
       if (gameState) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,13 +128,20 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => ({
       set({ error: reason });
     });
 
-    socket.on('game:player_disconnected', ({ name }) => {
-      set({ error: `${name} disconnected.` });
+    socket.on('game:player_disconnected', ({ slotIndex, playerId, name }) => {
+      const deadline = Date.now() + 120_000;
+      set(s => ({
+        disconnectedPlayers: [
+          ...s.disconnectedPlayers.filter(d => d.slotIndex !== slotIndex),
+          { slotIndex, playerId, name, disconnectedAt: Date.now(), reconnectDeadline: deadline },
+        ],
+      }));
     });
 
-    socket.on('game:player_reconnected', ({ name }) => {
-      set({ error: null });
-      console.log(`${name} reconnected.`);
+    socket.on('game:player_reconnected', ({ slotIndex }) => {
+      set(s => ({
+        disconnectedPlayers: s.disconnectedPlayers.filter(d => d.slotIndex !== slotIndex),
+      }));
     });
   },
 
@@ -169,7 +188,9 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => ({
       myPlayerId: null,
       mySlotIndex: null,
       reconnectToken: null,
+      disconnectedAt: null,
       lobbyPlayers: [],
+      disconnectedPlayers: [],
       error: null,
     });
     // Reset game state to menu

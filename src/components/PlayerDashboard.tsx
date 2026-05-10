@@ -16,7 +16,7 @@ export const PlayerDashboard: React.FC = () => {
     payAdventureFine, loseAdventureTurn,
   } = useGameStore();
 
-  const { mpPhase } = useMultiplayerStore();
+  const { mpPhase, disconnectedPlayers } = useMultiplayerStore();
   const isMyTurn = useIsMyTurn();
   const isOnline = mpPhase === 'PLAYING';
 
@@ -310,15 +310,22 @@ export const PlayerDashboard: React.FC = () => {
       <div className="other-players">
         {players.map((p, idx) => {
           if (idx === currentPlayerIndex) return null;
+          const disconnectedInfo = disconnectedPlayers.find(d => d.playerId === p.id);
+          const isDisconnected = !!disconnectedInfo;
           return (
-            <div key={p.id} className="mini-player" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', marginBottom: '0.5rem' }}>
-              <div>
+            <div key={p.id} className="mini-player" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem', background: isDisconnected ? 'rgba(239,68,68,0.12)' : 'rgba(255,255,255,0.1)', borderRadius: '4px', marginBottom: '0.5rem', border: isDisconnected ? '1px solid rgba(239,68,68,0.4)' : '1px solid transparent' }}>
+              <div style={{ opacity: isDisconnected ? 0.6 : 1 }}>
                 <span className="dot" style={{ backgroundColor: p.color }}></span>
                 {p.name} {p.isCpu && '(CPU)'}: {p.tp} TP
                 {p.badges.length > 0 && <span style={{ marginLeft: '0.5rem' }}>{'🏅'.repeat(p.badges.length)}</span>}
+                {isDisconnected && (
+                  <span style={{ marginLeft: '0.5rem', fontSize: '0.7rem', color: '#f87171', fontStyle: 'italic' }}>
+                    📡 disconnected ({Math.max(0, Math.ceil((disconnectedInfo.reconnectDeadline - Date.now()) / 1000))}s)
+                  </span>
+                )}
               </div>
-              {!currentPlayer.isCpu && (
-                <button 
+              {!currentPlayer.isCpu && !isDisconnected && (
+                <button
                   onClick={() => useGameStore.getState().initiateTrade(p.id)}
                   style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}
                 >

@@ -19,7 +19,9 @@ import { BOARD_SPACES } from './data/board';
 import { CREATURES } from './data/creatures';
 
 const MAX_SLOTS = 6;
-const DISCONNECT_TIMEOUT_MS = 30_000;
+const LOBBY_DISCONNECT_GRACE_MS = 5_000;    // remove from lobby after 5s (covers hard refresh)
+const GAME_RECONNECT_TIMEOUT_MS = 120_000;  // 120s to reconnect mid-game before auto-bankrupt
+const DISCONNECTED_TURN_SKIP_MS = 20_000;   // auto-skip disconnected player's turn after 20s
 const CPU_ACTION_DELAY_MS = 1_200;
 
 type IOServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -33,7 +35,9 @@ export class GameRoom {
 
   private io: IOServer | null = null;
   private disconnectTimers = new Map<number, ReturnType<typeof setTimeout>>();
+  private disconnectedSlots = new Set<number>(); // tracks which slots are currently offline in-game
   private cpuTimer: ReturnType<typeof setTimeout> | null = null;
+  private turnSkipTimer: ReturnType<typeof setTimeout> | null = null;
   private destroyed = false;
 
   constructor(roomCode: string) {
@@ -131,6 +135,7 @@ export class GameRoom {
 
     this.broadcast();
     this.scheduleCpuIfNeeded();
+    this.scheduleDisconnectedTurnIfNeeded();
     return null;
   }
 
@@ -378,18 +383,31 @@ export class GameRoom {
       name: slot.displayName,
     });
 
-    const timer = setTimeout(() => {
-      this.disconnectTimers.delete(slotIndex);
-      if (this.phase === 'LOBBY') {
+    if (this.phase === 'LOBBY') {
+      // ── Lobby: remove after a short grace period (handles hard refresh) ──
+      const timer = setTimeout(() => {
+        this.disconnectTimers.delete(slotIndex);
         this.slots = this.slots.filter(s => s.slotIndex !== slotIndex);
         if (slotIndex === this.hostSlotIndex && this.slots.length > 0) {
           this.hostSlotIndex = this.slots[0].slotIndex;
         }
         this.broadcastLobby();
-      }
-    }, DISCONNECT_TIMEOUT_MS);
+        console.log(`[room] kicked slot ${slotIndex} from lobby (disconnected)`);
+      }, LOBBY_DISCONNECT_GRACE_MS);
+      this.disconnectTimers.set(slotIndex, timer);
+    } else {
+      // ── In-game: 120-second reconnect window, then auto-bankrupt ──
+      this.disconnectedSlots.add(slotIndex);
+      this.scheduleDisconnectedTurnIfNeeded();
 
-    this.disconnectTimers.set(slotIndex, timer);
+      const timer = setTimeout(() => {
+        this.disconnectTimers.delete(slotIndex);
+        this.disconnectedSlots.delete(slotIndex);
+        console.log(`[room] slot ${slotIndex} reconnect window expired — declaring bankrupt`);
+        this.declareBankruptForSlot(slotIndex);
+      }, GAME_RECONNECT_TIMEOUT_MS);
+      this.disconnectTimers.set(slotIndex, timer);
+    }
   }
 
   cancelDisconnectTimer(slotIndex: number): void {
@@ -398,13 +416,126 @@ export class GameRoom {
       clearTimeout(timer);
       this.disconnectTimers.delete(slotIndex);
     }
+
+    this.disconnectedSlots.delete(slotIndex);
+
+    // Cancel any pending turn-skip if it was for the reconnecting player
+    if (this.turnSkipTimer) {
+      const player = this.gameState?.players[this.gameState.currentPlayerIndex];
+      const slot = this.getSlotByIndex(slotIndex);
+      if (player && slot && player.id === slot.playerId) {
+        clearTimeout(this.turnSkipTimer);
+        this.turnSkipTimer = null;
+      }
+    }
+
     const slot = this.getSlotByIndex(slotIndex);
     if (slot) {
+      slot.connected = true;
       this.io?.to(this.roomCode).emit('game:player_reconnected', {
         slotIndex,
         playerId: slot.playerId,
         name: slot.displayName,
       });
+    }
+  }
+
+  // ── Disconnected-player turn management ────────────────────────────────────
+
+  /** Skip the current player's turn if they are disconnected. */
+  private scheduleDisconnectedTurnIfNeeded(): void {
+    if (this.destroyed || !this.gameState) return;
+    if (this.turnSkipTimer) return;
+
+    const player = this.gameState.players[this.gameState.currentPlayerIndex];
+    if (!player || player.isCpu) return;
+
+    const slot = this.slots.find(s => s.playerId === player.id);
+    if (!slot || !this.disconnectedSlots.has(slot.slotIndex)) return;
+
+    this.turnSkipTimer = setTimeout(() => {
+      this.turnSkipTimer = null;
+      console.log(`[room] auto-skipping turn for disconnected slot ${slot.slotIndex}`);
+      this.forceAdvanceTurn(player.name);
+    }, DISCONNECTED_TURN_SKIP_MS);
+  }
+
+  /** Force-advance to the next player, used for disconnected player turns. */
+  private forceAdvanceTurn(skippedName: string): void {
+    if (this.destroyed || !this.gameState) return;
+
+    const players = [...this.gameState.players];
+    const curIdx = this.gameState.currentPlayerIndex;
+
+    players[curIdx] = { ...players[curIdx], consecutiveDoubles: 0, inAdventure: false };
+
+    let nextIndex = (curIdx + 1) % players.length;
+    let attempts = 0;
+    while (players[nextIndex]?.isBankrupt && attempts < players.length) {
+      nextIndex = (nextIndex + 1) % players.length;
+      attempts++;
+    }
+
+    const nextPhase = players[nextIndex]?.inAdventure ? 'ADVENTURE' : 'ROLL';
+
+    this.gameState = {
+      ...this.gameState,
+      players,
+      currentPlayerIndex: nextIndex,
+      phase: nextPhase,
+      battleState: null,
+      rolledDoubles: false,
+      pendingGymChallenge: false,
+      wildEncounter: null,
+      gameLogs: [
+        ...this.gameState.gameLogs.slice(-49),
+        `⏭️ ${skippedName}'s turn was skipped (disconnected).`,
+      ],
+    };
+
+    this.broadcast();
+    this.scheduleCpuIfNeeded();
+    this.scheduleDisconnectedTurnIfNeeded();
+  }
+
+  /** Remove a player's assets and mark them bankrupt after reconnect window expires. */
+  private declareBankruptForSlot(slotIndex: number): void {
+    if (this.destroyed || !this.gameState) return;
+
+    const slot = this.getSlotByIndex(slotIndex);
+    if (!slot) return;
+
+    const playerIdx = this.gameState.players.findIndex(p => p.id === slot.playerId);
+    if (playerIdx === -1) return;
+
+    const player = this.gameState.players[playerIdx];
+    if (player.isBankrupt) return;
+
+    const players = [...this.gameState.players];
+    const boardOwnership = { ...this.gameState.boardOwnership };
+
+    players[playerIdx] = { ...player, isBankrupt: true, party: [], storage: [] };
+    Object.keys(boardOwnership).forEach(k => {
+      if (boardOwnership[Number(k)].ownerId === player.id) delete boardOwnership[Number(k)];
+    });
+
+    this.gameState = {
+      ...this.gameState,
+      players,
+      boardOwnership,
+      gameLogs: [
+        ...this.gameState.gameLogs.slice(-49),
+        `💀 ${player.name} was removed from the game (disconnected for too long).`,
+      ],
+    };
+
+    // If it was their turn, advance to the next player
+    if (this.gameState.currentPlayerIndex === playerIdx) {
+      this.forceAdvanceTurn(player.name);
+    } else {
+      this.broadcast();
+      this.scheduleCpuIfNeeded();
+      this.scheduleDisconnectedTurnIfNeeded();
     }
   }
 
@@ -415,7 +546,9 @@ export class GameRoom {
   destroy(): void {
     this.destroyed = true;
     if (this.cpuTimer) clearTimeout(this.cpuTimer);
+    if (this.turnSkipTimer) clearTimeout(this.turnSkipTimer);
     for (const t of this.disconnectTimers.values()) clearTimeout(t);
     this.disconnectTimers.clear();
+    this.disconnectedSlots.clear();
   }
 }
