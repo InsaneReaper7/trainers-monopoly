@@ -1,0 +1,77 @@
+.trade-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.trade-modal-content {
+  width: 90%;
+  max-width: 800px;
+  background: rgba(15, 23, 42, 0.95);
+  padding: 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.trade-columns {
+  display: flex;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.trade-column {
+  flex: 1;
+  background: rgba(0,0,0,0.3);
+  padding: 1.5rem;
+  border-radius: 8px;
+}
+
+.tp-adjuster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+}
+
+.trade-creature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.trade-creature-card {
+  background: rgba(255,255,255,0.1);
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.trade-creature-card:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.trade-creature-card.selected {
+  border-color: #fbbf24;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.trade-creature-card img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  margin-bottom: 0.25rem;
+}

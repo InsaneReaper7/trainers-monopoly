@@ -1,0 +1,90 @@
+.dashboard {
+  width: 350px;
+  height: 800px;
+  margin-left: 2rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.active-player-header {
+  border-bottom: 4px solid var(--primary);
+  padding-bottom: 1rem;
+}
+
+.active-player-header .heading {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.tp-display {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0,0,0,0.2);
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.dice-display {
+  font-size: 2rem;
+  display: flex;
+  gap: 1rem;
+}
+
+.party-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.creature-card {
+  padding: 0.75rem;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.creature-card.empty {
+  opacity: 0.5;
+  border: 1px dashed rgba(255,255,255,0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 80px;
+}
+
+.creature-name {
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-bottom: 0.5rem;
+}
+
+.other-players {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mini-player {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
