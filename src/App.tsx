@@ -82,7 +82,7 @@ function App() {
           ))}
         </div>
 
-        {players.length < 4 && (
+        {players.length < 6 && (
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
             <input
               value={playerName}
@@ -94,7 +94,7 @@ function App() {
               className="btn-primary"
               onClick={() => {
                 if (playerName) {
-                  const colors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308'];
+                  const colors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#14b8a6', '#a855f7', '#f97316', '#ec4899'];
                   addPlayer(playerName, colors[players.length], false);
                   setPlayerName('');
                 }
@@ -105,7 +105,7 @@ function App() {
           </div>
         )}
 
-        {players.length > 0 && players.length < 4 && (
+        {players.length > 0 && players.length < 6 && (
           <button
             className="btn-primary"
             onClick={() => addCpuPlayers()}
@@ -125,7 +125,7 @@ function App() {
           </button>
           <button
             className="btn-primary"
-            disabled={players.length < 2}
+            disabled={players.length < 2 || players.length > 6}
             onClick={startGame}
             style={{ flex: 1 }}
           >

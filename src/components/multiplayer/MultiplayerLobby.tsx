@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useMultiplayerStore } from '../../multiplayer/multiplayerStore';
 
-const COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#eab308'];
-const COLOR_NAMES = ['Blue', 'Red', 'Green', 'Yellow'];
+const COLORS = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#14b8a6', '#a855f7', '#f97316', '#ec4899'];
+const COLOR_NAMES = ['Blue', 'Red', 'Green', 'Yellow', 'Teal', 'Purple', 'Orange', 'Pink'];
 
 interface MultiplayerLobbyProps {
   onBack: () => void;

@@ -698,8 +698,19 @@ export function reducerAcceptTrade(state: GameState): Partial<GameState> {
   const initPlayer = { ...players[initIdx], party: [...players[initIdx].party], storage: [...players[initIdx].storage] };
   const targetPlayer = { ...players[targetIdx], party: [...players[targetIdx].party], storage: [...players[targetIdx].storage] };
 
-  initPlayer.tp = initPlayer.tp - trade.offeredTp + trade.requestedTp;
-  targetPlayer.tp = targetPlayer.tp - trade.requestedTp + trade.offeredTp;
+  // ── Validation ──────────────────────────────────────────────────────────────
+  const initTpAfter = initPlayer.tp - trade.offeredTp + trade.requestedTp;
+  const targetTpAfter = targetPlayer.tp - trade.requestedTp + trade.offeredTp;
+  if (initTpAfter < 0 || targetTpAfter < 0) return {};
+
+  const initTotal   = initPlayer.party.length   + initPlayer.storage.length;
+  const targetTotal = targetPlayer.party.length  + targetPlayer.storage.length;
+  if (trade.offeredCreatureIds.length >= initTotal   && trade.requestedCreatureIds.length === 0) return {};
+  if (trade.requestedCreatureIds.length >= targetTotal && trade.offeredCreatureIds.length === 0)   return {};
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  initPlayer.tp   = initTpAfter;
+  targetPlayer.tp = targetTpAfter;
 
   const offeredCreatures = [...initPlayer.party, ...initPlayer.storage].filter(c => trade.offeredCreatureIds.includes(c.id));
   const requestedCreatures = [...targetPlayer.party, ...targetPlayer.storage].filter(c => trade.requestedCreatureIds.includes(c.id));
@@ -793,6 +804,7 @@ export function reducerInitiateTrade(state: GameState, targetId: string): Partia
       status: 'DRAFTING',
       initiatorId: player.id,
       targetId,
+      responderId: targetId,
       offeredTp: 0,
       offeredCreatureIds: [],
       requestedTp: 0,
@@ -811,7 +823,15 @@ export function reducerUpdateTradeOffer(
 
 export function reducerProposeTrade(state: GameState): Partial<GameState> {
   if (!state.tradeState) return {};
-  return { tradeState: { ...state.tradeState, status: 'PROPOSED' } };
+  return { tradeState: { ...state.tradeState, status: 'PROPOSED', responderId: state.tradeState.targetId } };
+}
+
+export function reducerNegotiateTrade(state: GameState): Partial<GameState> {
+  if (!state.tradeState) return {};
+  const trade = state.tradeState;
+  // Flip the responder — the one who just declined to accept now edits their counter
+  const newResponderId = trade.responderId === trade.targetId ? trade.initiatorId : trade.targetId;
+  return { tradeState: { ...trade, status: 'COUNTER', responderId: newResponderId } };
 }
 
 export function reducerDeclineTrade(state: GameState): Partial<GameState> {

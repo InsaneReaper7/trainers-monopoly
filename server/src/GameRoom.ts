@@ -9,7 +9,7 @@ import {
   reducerStartBattle, reducerSelectBattleCreature, reducerExecuteBattleRound, reducerEndBattle,
   reducerReleaseCreature, reducerDrawCard, reducerPayTax, reducerCaptureWildCreature,
   reducerClearWildEncounter,
-  reducerInitiateTrade, reducerUpdateTradeOffer, reducerProposeTrade, reducerAcceptTrade,
+  reducerInitiateTrade, reducerUpdateTradeOffer, reducerProposeTrade, reducerNegotiateTrade, reducerAcceptTrade,
   reducerDeclineTrade, reducerCancelTrade,
   reducerPayAdventureFine, reducerLoseAdventureTurn,
   reducerSellPowerUp, reducerDeclareBankruptcy, reducerPowerUpTile,
@@ -18,7 +18,7 @@ import {
 import { BOARD_SPACES } from './data/board';
 import { CREATURES } from './data/creatures';
 
-const MAX_SLOTS = 4;
+const MAX_SLOTS = 6;
 const DISCONNECT_TIMEOUT_MS = 30_000;
 const CPU_ACTION_DELAY_MS = 1_200;
 
@@ -106,11 +106,15 @@ export class GameRoom {
     if (fromPlayerId && !observerActions.includes(action)) {
       const currentPlayer = this.gameState.players[this.gameState.currentPlayerIndex];
       // For trade, either party may act
-      const tradeActions: ActionName[] = ['updateTradeOffer', 'proposeTrade', 'acceptTrade', 'declineTrade', 'cancelTrade'];
+      const tradeActions: ActionName[] = ['updateTradeOffer', 'proposeTrade', 'negotiateTrade', 'acceptTrade', 'declineTrade', 'cancelTrade'];
       if (tradeActions.includes(action)) {
         const ts = this.gameState.tradeState;
-        if (ts && fromPlayerId !== ts.initiatorId && fromPlayerId !== ts.targetId) {
-          return 'Not your trade';
+        if (!ts) return 'No active trade';
+        if (fromPlayerId !== ts.initiatorId && fromPlayerId !== ts.targetId) return 'Not your trade';
+        // For editing/sending actions, only the responder may act
+        const editActions: ActionName[] = ['updateTradeOffer', 'proposeTrade', 'negotiateTrade', 'acceptTrade', 'declineTrade'];
+        if (editActions.includes(action) && ts.status !== 'DRAFTING' && fromPlayerId !== ts.responderId) {
+          return 'Not your turn in this trade';
         }
       } else if (fromPlayerId !== currentPlayer?.id) {
         return 'Not your turn';
@@ -190,6 +194,9 @@ export class GameRoom {
 
       case 'proposeTrade':
         return reducerProposeTrade(state);
+
+      case 'negotiateTrade':
+        return reducerNegotiateTrade(state);
 
       case 'acceptTrade':
         return reducerAcceptTrade(state);

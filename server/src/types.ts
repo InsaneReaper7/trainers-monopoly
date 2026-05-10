@@ -81,13 +81,14 @@ export interface BattleState {
 }
 
 export interface TradeState {
-  status: 'DRAFTING' | 'PROPOSED';
+  status: 'DRAFTING' | 'PROPOSED' | 'COUNTER';
   initiatorId: string;
   targetId: string;
   offeredTp: number;
   offeredCreatureIds: string[];
   requestedTp: number;
   requestedCreatureIds: string[];
+  responderId: string;
 }
 
 export type GamePhase =
@@ -140,7 +141,7 @@ export type ActionName =
   | 'rollDice' | 'endTurn' | 'captureTile' | 'payRent'
   | 'startBattle' | 'selectBattleCreature' | 'executeBattleRound' | 'endBattle'
   | 'releaseCreature' | 'drawCard' | 'payTax' | 'captureWildCreature' | 'clearWildEncounter'
-  | 'initiateTrade' | 'updateTradeOffer' | 'proposeTrade' | 'acceptTrade'
+  | 'initiateTrade' | 'updateTradeOffer' | 'proposeTrade' | 'negotiateTrade' | 'acceptTrade'
   | 'declineTrade' | 'cancelTrade'
   | 'payAdventureFine' | 'loseAdventureTurn'
   | 'sellPowerUp' | 'declareBankruptcy' | 'powerUpTile'

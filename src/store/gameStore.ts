@@ -36,13 +36,15 @@ export interface BattleState {
 }
 
 export interface TradeState {
-  status: 'DRAFTING' | 'PROPOSED';
+  status: 'DRAFTING' | 'PROPOSED' | 'COUNTER';
   initiatorId: string;
   targetId: string;
   offeredTp: number;
   offeredCreatureIds: string[];
   requestedTp: number;
   requestedCreatureIds: string[];
+  /** The player currently holding the ball — must accept/decline/negotiate */
+  responderId: string;
 }
 
 export type GamePhase = 'MENU' | 'SETUP' | 'ROLL' | 'ACTION' | 'BATTLE' | 'END_TURN' | 'BANKRUPTCY' | 'ADVENTURE';
@@ -88,8 +90,9 @@ interface GameState {
   
   // Trade Actions
   initiateTrade: (targetId: string) => void;
-  updateTradeOffer: (offer: Partial<Omit<TradeState, 'status' | 'initiatorId' | 'targetId'>>) => void;
+  updateTradeOffer: (offer: Partial<Omit<TradeState, 'status' | 'initiatorId' | 'targetId' | 'responderId'>>) => void;
   proposeTrade: () => void;
+  negotiateTrade: () => void;
   acceptTrade: () => void;
   declineTrade: () => void;
   cancelTrade: () => void;
@@ -329,10 +332,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   })),
 
   addCpuPlayers: () => set((state) => {
-    const cpuColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308'];
-    const names = ['Rival Gary', 'Rival Blue', 'Rival Silver', 'Rival Wally'];
-    
-    const toAdd = 4 - state.players.length;
+    const cpuColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#14b8a6', '#a855f7', '#f97316', '#ec4899'];
+    const names = ['Rival Gary', 'Rival Blue', 'Rival Silver', 'Rival Wally', 'Rival Kris', 'Rival Ethan'];
+
+    const toAdd = 6 - state.players.length;
     if (toAdd <= 0) return state;
 
     const newPlayers = [];
@@ -1000,6 +1003,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         status: 'DRAFTING',
         initiatorId,
         targetId,
+        responderId: targetId,
         offeredTp: 0,
         offeredCreatureIds: [],
         requestedTp: 0,
@@ -1021,7 +1025,16 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (targetPlayer?.isCpu) {
       return { tradeState: null, cardMessage: `${targetPlayer.name} is not interested in trading right now.` };
     }
-    return { tradeState: { ...state.tradeState, status: 'PROPOSED' } };
+    return { tradeState: { ...state.tradeState, status: 'PROPOSED', responderId: state.tradeState.targetId } };
+  }),
+
+  negotiateTrade: () => set((state) => {
+    if (mpIntercept('negotiateTrade', [])) return state;
+    if (!state.tradeState) return state;
+    const trade = state.tradeState;
+    // Flip who responds: current responder becomes the new drafter, the other side waits
+    const newResponderId = trade.responderId === trade.targetId ? trade.initiatorId : trade.targetId;
+    return { tradeState: { ...trade, status: 'COUNTER', responderId: newResponderId } };
   }),
 
   acceptTrade: () => set((state) => {
@@ -1036,8 +1049,21 @@ export const useGameStore = create<GameState>((set, get) => ({
     const initPlayer = { ...players[initIdx], party: [...players[initIdx].party], storage: [...players[initIdx].storage] };
     const targetPlayer = { ...players[targetIdx], party: [...players[targetIdx].party], storage: [...players[targetIdx].storage] };
 
-    initPlayer.tp = initPlayer.tp - trade.offeredTp + trade.requestedTp;
-    targetPlayer.tp = targetPlayer.tp - trade.requestedTp + trade.offeredTp;
+    // ── Validation ──────────────────────────────────────────────────────────────
+    // Block if the trade leaves either player with negative TP
+    const initTpAfter = initPlayer.tp - trade.offeredTp + trade.requestedTp;
+    const targetTpAfter = targetPlayer.tp - trade.requestedTp + trade.offeredTp;
+    if (initTpAfter < 0 || targetTpAfter < 0) return state;
+
+    // Block if either player would be left with ZERO creatures (party + storage combined)
+    const initTotalCreatures = initPlayer.party.length + initPlayer.storage.length;
+    const targetTotalCreatures = targetPlayer.party.length + targetPlayer.storage.length;
+    if (trade.offeredCreatureIds.length >= initTotalCreatures && trade.requestedCreatureIds.length === 0) return state;
+    if (trade.requestedCreatureIds.length >= targetTotalCreatures && trade.offeredCreatureIds.length === 0) return state;
+    // ─────────────────────────────────────────────────────────────────────────────
+
+    initPlayer.tp = initTpAfter;
+    targetPlayer.tp = targetTpAfter;
 
     const offeredCreatures = [...initPlayer.party, ...initPlayer.storage].filter(c => trade.offeredCreatureIds.includes(c.id));
     const requestedCreatures = [...targetPlayer.party, ...targetPlayer.storage].filter(c => trade.requestedCreatureIds.includes(c.id));

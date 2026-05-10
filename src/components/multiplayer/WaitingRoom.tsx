@@ -27,7 +27,7 @@ export const WaitingRoom: React.FC = () => {
 
       {/* Player list */}
       <div style={{ marginBottom: '1.5rem' }}>
-        <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Players ({lobbyPlayers.length}/4):</p>
+        <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '0.5rem' }}>Players ({lobbyPlayers.length}/6):</p>
         {lobbyPlayers.map(p => (
           <div key={p.slotIndex} style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem',
@@ -51,7 +51,7 @@ export const WaitingRoom: React.FC = () => {
           </div>
         ))}
         {/* Empty slots */}
-        {Array.from({ length: Math.max(0, 4 - lobbyPlayers.length) }).map((_, i) => (
+        {Array.from({ length: Math.max(0, 6 - lobbyPlayers.length) }).map((_, i) => (
           <div key={`empty-${i}`} style={{
             display: 'flex', alignItems: 'center', gap: '0.75rem',
             padding: '0.6rem 0.75rem', marginBottom: '0.4rem',
