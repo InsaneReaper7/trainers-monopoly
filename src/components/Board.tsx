@@ -74,13 +74,15 @@ export const Board: React.FC = () => {
               
               {/* Render Players on this space */}
               <div className="players-on-space">
-                {players.filter(p => p.position === space.index).map(p => (
-                  <div 
-                    key={p.id} 
-                    className="player-token" 
+                {players.filter(p => p.position === space.index && !p.isBankrupt).map(p => (
+                  <div
+                    key={p.id}
+                    className="player-token"
                     style={{ backgroundColor: p.color }}
                     title={p.name}
-                  />
+                  >
+                    {p.name.charAt(0).toUpperCase()}
+                  </div>
                 ))}
               </div>
             </div>

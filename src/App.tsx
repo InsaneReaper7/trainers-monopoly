@@ -15,10 +15,11 @@ import './App.css';
 type AppScreen = 'MENU' | 'SP_SETUP' | 'MP_LOBBY' | 'GAME';
 
 function App() {
-  const { phase, addPlayer, addCpuPlayers, startGame, players, quitToMenu } = useGameStore();
+  const { phase, addPlayer, addCpuPlayers, startGame, players, quitToMenu, winner } = useGameStore();
   const { mpPhase, leaveRoom } = useMultiplayerStore();
   const [screen, setScreen] = useState<AppScreen>('MENU');
   const [playerName, setPlayerName] = useState('');
+  const [cpuCount, setCpuCount] = useState(1);
 
   // Multiplayer playing — let the server drive the game state
   if (mpPhase === 'PLAYING' || mpPhase === 'DISCONNECTED') {
@@ -37,6 +38,16 @@ function App() {
         <StorageModal />
         <TileInfoModal />
         <DisconnectedOverlay />
+        {winner && (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+            <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '480px' }}>
+              <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏆</div>
+              <h1 className="heading text-gradient" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>VICTORY!</h1>
+              <p style={{ color: '#fbbf24', fontSize: '1.4rem', marginBottom: '2rem', fontWeight: 'bold' }}>{winner} wins the game!</p>
+              <button className="btn-primary" onClick={() => { leaveRoom(); setScreen('MENU'); }} style={{ fontSize: '1.1rem', padding: '0.75rem 2rem' }}>Back to Menu</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -106,13 +117,31 @@ function App() {
         )}
 
         {players.length > 0 && players.length < 6 && (
-          <button
-            className="btn-primary"
-            onClick={() => addCpuPlayers()}
-            style={{ width: '100%', marginBottom: '1rem', background: '#fbbf24', color: '#000' }}
-          >
-            Fill with NPC Rivals
-          </button>
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ color: '#ccc', fontSize: '0.9rem' }}>Add CPU Rivals:</span>
+              <button
+                className="btn-primary"
+                onClick={() => setCpuCount(c => Math.max(1, c - 1))}
+                style={{ padding: '4px 10px', background: '#4b5563' }}
+                disabled={cpuCount <= 1}
+              >−</button>
+              <span style={{ color: '#fbbf24', fontWeight: 'bold', minWidth: '1.5rem', textAlign: 'center' }}>{cpuCount}</span>
+              <button
+                className="btn-primary"
+                onClick={() => setCpuCount(c => Math.min(6 - players.length, c + 1))}
+                style={{ padding: '4px 10px', background: '#4b5563' }}
+                disabled={cpuCount >= 6 - players.length}
+              >+</button>
+              <button
+                className="btn-primary"
+                onClick={() => addCpuPlayers(cpuCount)}
+                style={{ background: '#fbbf24', color: '#000', flex: 1 }}
+              >
+                Add {cpuCount} CPU{cpuCount > 1 ? 's' : ''}
+              </button>
+            </div>
+          </div>
         )}
 
         <div style={{ display: 'flex', gap: '1rem' }}>
@@ -126,7 +155,7 @@ function App() {
           <button
             className="btn-primary"
             disabled={players.length < 2 || players.length > 6}
-            onClick={startGame}
+            onClick={() => { startGame(); setScreen('GAME'); }}
             style={{ flex: 1 }}
           >
             Start Game
@@ -151,6 +180,16 @@ function App() {
       <TradeModal />
       <StorageModal />
       <TileInfoModal />
+      {winner && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '480px' }}>
+            <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🏆</div>
+            <h1 className="heading text-gradient" style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>VICTORY!</h1>
+            <p style={{ color: '#fbbf24', fontSize: '1.4rem', marginBottom: '2rem', fontWeight: 'bold' }}>{winner} wins the game!</p>
+            <button className="btn-primary" onClick={() => { quitToMenu(); setScreen('MENU'); }} style={{ fontSize: '1.1rem', padding: '0.75rem 2rem' }}>Back to Menu</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

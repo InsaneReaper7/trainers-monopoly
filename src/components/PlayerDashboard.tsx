@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useMultiplayerStore } from '../multiplayer/multiplayerStore';
 import { useIsMyTurn } from '../multiplayer/hooks/useIsMyTurn';
-import { BOARD_SPACES } from '../data/board';
+import { BOARD_SPACES, GROUP_RENT_PER_TIER } from '../data/board';
 import { CREATURES } from '../data/creatures';
+import { GYM_LEADERS } from '../data/gyms';
 import type { ActiveCreature } from '../types';
 import { CreatureDetailsModal } from './CreatureDetailsModal';
 import './PlayerDashboard.css';
@@ -11,7 +12,7 @@ import './PlayerDashboard.css';
 export const PlayerDashboard: React.FC = () => {
   const {
     players, currentPlayerIndex, phase, dice, boardOwnership, battleState, cardMessage, rolledDoubles, pendingGymChallenge,
-    rollDice, endTurn, captureTile, payRent, startBattle, selectBattleCreature, executeBattleRound, endBattle,
+    rollDice, endTurn, captureTile, payRent, startBattle, startChampionBattle, selectBattleCreature, executeBattleRound, endBattle,
     releaseCreature, drawCard, payTax, clearCardMessage, playCpuAction, declareBankruptcy,
     payAdventureFine, loseAdventureTurn,
   } = useGameStore();
@@ -131,14 +132,16 @@ export const PlayerDashboard: React.FC = () => {
           );
         } else if (isOwnedByOther) {
           const owner = players.find(p => p.id === spaceOwnership.ownerId);
+          const rentAmount = species.baseRent + (GROUP_RENT_PER_TIER[currentSpace.groupId!] ?? 50) * (spaceOwnership.powerUpTier ?? 0);
+          const lossRent = Math.floor(rentAmount * 1.3);
           return (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <div style={{ fontSize: '0.9rem', color: '#ef4444' }}>Owned by {owner?.name}</div>
               <button className="btn-primary" onClick={() => payRent(currentPlayer.position)}>
-                Pay Rent ({species.baseRent} TP)
+                Pay Rent ({rentAmount} TP)
               </button>
               <button className="btn-primary" onClick={() => startBattle(currentPlayer.position, false)} disabled={currentPlayer.party.length === 0}>
-                Battle (Half Rent if you win)
+                Challenge ({Math.floor(rentAmount / 2)} TP win / {lossRent} TP loss)
               </button>
             </div>
           );
@@ -207,6 +210,25 @@ export const PlayerDashboard: React.FC = () => {
               Capture ({speciesData.captureCost} TP)
             </button>
             <button className="btn-primary" onClick={endTurn}>Flee</button>
+          </div>
+        );
+      }
+
+      // Champion's Arena with 8 badges
+      if (currentSpace.index === 20 && currentPlayer.badges.length >= 8) {
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+            <div style={{ fontSize: '0.9rem', color: '#fbbf24', fontWeight: 'bold' }}>🏆 Champion's Arena!</div>
+            <div style={{ fontSize: '0.8rem', color: '#22c55e' }}>You have all 8 badges — challenge the Champion!</div>
+            <button
+              className="btn-primary"
+              onClick={startChampionBattle}
+              disabled={currentPlayer.party.length === 0}
+              style={{ background: '#7c3aed' }}
+            >
+              ⚔️ Challenge Champion Lance!
+            </button>
+            <button className="btn-primary" onClick={endTurn}>Skip</button>
           </div>
         );
       }
@@ -335,6 +357,33 @@ export const PlayerDashboard: React.FC = () => {
             </div>
           );
         })}
+      </div>
+
+      {/* Badge tracker */}
+      <div style={{ padding: '0.5rem 0', borderTop: '1px solid rgba(255,255,255,0.1)', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '0.5rem' }}>
+        <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.35rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Badges ({currentPlayer.badges.length}/8)</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+          {Object.values(GYM_LEADERS).map(gym => {
+            const has = currentPlayer.badges.includes(gym.badgeReward);
+            return (
+              <span
+                key={gym.badgeReward}
+                title={gym.badgeReward}
+                style={{
+                  fontSize: '0.65rem',
+                  padding: '2px 6px',
+                  borderRadius: '10px',
+                  background: has ? 'rgba(34,197,94,0.2)' : 'rgba(255,255,255,0.06)',
+                  color: has ? '#22c55e' : '#6b7280',
+                  border: `1px solid ${has ? '#22c55e' : '#374151'}`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {has ? '✓' : '✗'} {gym.badgeReward}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       <div className="party-section">

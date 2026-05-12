@@ -1,5 +1,29 @@
 import type { BoardSpace } from '../types';
 
+// TP cost per house upgrade (per tile in the group)
+export const GROUP_HOUSE_COST: Record<string, number> = {
+  brown:    50,
+  lightBlue: 50,
+  pink:    100,
+  orange:  100,
+  red:     150,
+  yellow:  150,
+  green:   200,
+  darkBlue: 200,
+};
+
+// Additional rent gained per power-up tier
+export const GROUP_RENT_PER_TIER: Record<string, number> = {
+  brown:    50,
+  lightBlue: 50,
+  pink:    100,
+  orange:  100,
+  red:     150,
+  yellow:  150,
+  green:   200,
+  darkBlue: 250,
+};
+
 export const BOARD_SPACES: BoardSpace[] = [
   // SIDE 1 (Bottom row conceptually, left to right 0-10)
   { index: 0, name: 'Healing Center', type: 'Start' },

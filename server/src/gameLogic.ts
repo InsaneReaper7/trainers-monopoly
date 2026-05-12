@@ -4,9 +4,9 @@
  * GameRoom calls these and merges the result into the authoritative state.
  */
 
-import { BOARD_SPACES } from './data/board';
+import { BOARD_SPACES, GROUP_HOUSE_COST, GROUP_RENT_PER_TIER } from './data/board';
 import { CREATURES } from './data/creatures';
-import { GYM_LEADERS } from './data/gyms';
+import { GYM_LEADERS, CHAMPION } from './data/gyms';
 import { calculateDamage } from './utils/combat';
 import type { ActiveCreature, GameState, GamePhase } from './types';
 
@@ -178,7 +178,7 @@ export function reducerPowerUpTile(state: GameState, spaceIndex: number): Partia
   if (!ownsAll) return {};
   const minTierInGroup = Math.min(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0));
   if (ownership.powerUpTier >= minTierInGroup + 1 || ownership.powerUpTier >= 4) return {};
-  const cost = 100 * (ownership.powerUpTier + 1) * groupSpaces.length;
+  const cost = (GROUP_HOUSE_COST[space.groupId] ?? 100) * groupSpaces.length;
   if (player.tp < cost) return {};
   player.tp -= cost;
   const players = [...state.players];
@@ -198,7 +198,7 @@ export function reducerPowerUpTile(state: GameState, spaceIndex: number): Partia
   else if (si !== -1) player.storage[si] = boostCreature(player.storage[si]);
   boardOwnership[spaceIndex] = { ...ownership, powerUpTier: ownership.powerUpTier + 1 };
   players[state.currentPlayerIndex] = player;
-  const newRent = Math.floor(species.baseRent * (1 + boardOwnership[spaceIndex].powerUpTier * 0.5));
+  const newRent = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId] ?? 50) * boardOwnership[spaceIndex].powerUpTier;
   return {
     players,
     boardOwnership,
@@ -218,7 +218,7 @@ export function reducerSellPowerUp(state: GameState, spaceIndex: number): Partia
   const maxTierInGroup = Math.max(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0));
   if (ownership.powerUpTier < maxTierInGroup) return {};
   const species = CREATURES[space.speciesId];
-  const refund = Math.floor(100 * ownership.powerUpTier * groupSpaces.length / 2);
+  const refund = Math.floor((GROUP_HOUSE_COST[space.groupId] ?? 100) * groupSpaces.length / 2);
   player.tp += refund;
   boardOwnership[spaceIndex] = { ...ownership, powerUpTier: ownership.powerUpTier - 1 };
   const deBoost = (c: ActiveCreature) => ({
@@ -262,6 +262,18 @@ export function reducerDeclareBankruptcy(state: GameState): Partial<GameState> {
     if (boardOwnership[Number(k)].ownerId === player.id) delete boardOwnership[Number(k)];
   });
   players[state.currentPlayerIndex] = player;
+
+  const activePlayers = players.filter(p => !p.isBankrupt);
+  if (activePlayers.length === 1) {
+    return {
+      players,
+      boardOwnership,
+      phase: 'GAME_OVER' as GamePhase,
+      winner: activePlayers[0].name,
+      gameLogs: [...state.gameLogs.slice(-49), `💀 ${player.name} has gone bankrupt!`, `🏆 ${activePlayers[0].name} is the last trainer standing!`],
+    } as Partial<GameState>;
+  }
+
   let nextIndex = (state.currentPlayerIndex + 1) % players.length;
   let attempts = 0;
   while (players[nextIndex]?.isBankrupt && attempts < players.length) {
@@ -406,8 +418,9 @@ export function reducerReleaseCreature(state: GameState, creatureId: string): Pa
   else player.storage = player.storage.filter(c => c.id !== creatureId);
   player.tp += Math.floor(species.captureCost / 2);
   const boardOwnership = { ...state.boardOwnership };
-  const spaceKey = Object.keys(boardOwnership).find(k => boardOwnership[Number(k)].creatureId === creatureId);
-  if (spaceKey !== undefined) delete boardOwnership[Number(spaceKey)];
+  Object.keys(boardOwnership).forEach(k => {
+    if (boardOwnership[Number(k)].creatureId === creatureId) delete boardOwnership[Number(k)];
+  });
   players[state.currentPlayerIndex] = player;
   const stillNegative = player.tp < 0;
   const newPhase: GamePhase = !stillNegative && state.phase === 'BANKRUPTCY' ? 'END_TURN' : state.phase;
@@ -423,13 +436,32 @@ export function reducerPayRent(state: GameState, spaceIndex: number): Partial<Ga
   const fromPlayer = { ...players[state.currentPlayerIndex] };
   const toPlayerIndex = players.findIndex(p => p.id === ownership.ownerId);
   if (toPlayerIndex === -1 || fromPlayer.id === ownership.ownerId) return {};
-  const rentAmount = Math.floor(species.baseRent * (1 + ownership.powerUpTier * 0.5));
+  const rentAmount = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId!] ?? 50) * ownership.powerUpTier;
   fromPlayer.tp -= rentAmount;
   players[toPlayerIndex] = { ...players[toPlayerIndex], tp: players[toPlayerIndex].tp + rentAmount };
   players[state.currentPlayerIndex] = fromPlayer;
   const newLogs = log(state, `${fromPlayer.name} paid ${rentAmount} TP rent to ${players[toPlayerIndex].name}.`);
   if (fromPlayer.tp < 0) return { players, gameLogs: newLogs, phase: 'BANKRUPTCY' };
   return { players, phase: 'END_TURN', gameLogs: newLogs };
+}
+
+export function reducerStartChampionBattle(state: GameState): Partial<GameState> {
+  const player = state.players[state.currentPlayerIndex];
+  if (player.badges.length < 8) return {};
+  if (BOARD_SPACES[player.position].index !== 20) return {};
+  const champCreature = CHAMPION.party[Math.floor(Math.random() * CHAMPION.party.length)];
+  return {
+    phase: 'BATTLE',
+    battleState: {
+      isActive: true,
+      type: 'CHAMPION',
+      challengerId: player.id,
+      defenderId: 'CHAMPION',
+      defenderCreatureTemp: champCreature,
+      round: 1,
+      logs: [`${player.name} challenges ${CHAMPION.name}! Face ${champCreature.name}!`],
+    },
+  };
 }
 
 export function reducerStartBattle(state: GameState, spaceIndex: number, isGym: boolean): Partial<GameState> {
@@ -493,7 +525,8 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
       const tileSpecies = CREATURES[space.speciesId!];
       if (tileSpecies) {
         const fo = state.boardOwnership[challenger.position];
-        const fullRent = Math.floor(tileSpecies.baseRent * (1 + (fo?.powerUpTier ?? 0) * 0.5));
+        const forfeitSpace = BOARD_SPACES[challenger.position];
+        const fullRent = tileSpecies.baseRent + (GROUP_RENT_PER_TIER[forfeitSpace.groupId ?? ''] ?? 50) * (fo?.powerUpTier ?? 0);
         const rentAmount = Math.floor(fullRent / 2);
         players[players.findIndex(p => p.id === challenger.id)].tp -= rentAmount;
         if (defIdx !== -1) players[defIdx].tp += rentAmount;
@@ -549,9 +582,9 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
     const space = BOARD_SPACES[challenger.position];
     const tileSp = CREATURES[space.speciesId!];
     const tileOwnership = state.boardOwnership[challenger.position];
-    const fullRent = Math.floor(tileSp.baseRent * (1 + (tileOwnership?.powerUpTier ?? 0) * 0.5));
-    const rentAmount = chalWins ? Math.floor(fullRent / 2) : fullRent;
-    logs.push(chalWins ? `Challenger pays HALF rent (${rentAmount} TP of ${fullRent} TP)!` : `Challenger pays FULL rent (${rentAmount} TP)!`);
+    const fullRent = tileSp.baseRent + (GROUP_RENT_PER_TIER[space.groupId!] ?? 50) * (tileOwnership?.powerUpTier ?? 0);
+    const rentAmount = chalWins ? Math.floor(fullRent / 2) : Math.floor(fullRent * 1.3);
+    logs.push(chalWins ? `Challenger pays HALF rent (${rentAmount} TP of ${fullRent} TP)!` : `Challenger pays 30% MORE rent (${rentAmount} TP of ${fullRent} TP)!`);
     const defIndex = players.findIndex(p => p.id === state.battleState!.defenderId);
     players[chalIndex].tp -= rentAmount;
     players[defIndex] = { ...players[defIndex], tp: players[defIndex].tp + rentAmount };
@@ -579,14 +612,27 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
     } else {
       logs.push('Lost the Gym Battle. Try again later!');
     }
+  } else if (state.battleState.type === 'CHAMPION') {
+    if (chalWins) {
+      logs.push(`${challenger.name} defeated ${CHAMPION.name} and became Champion!`);
+    } else {
+      logs.push(`${challenger.name} lost to ${CHAMPION.name}! Better train harder…`);
+    }
   }
+
+  const championWon = state.battleState.type === 'CHAMPION' && chalWins;
 
   const newGameLogs = [
     ...state.gameLogs.slice(-45),
     `⚔️ ${challenger.name}'s ${chalForm!.name} vs ${defName} — ${chalWins ? challenger.name + ' wins!' : 'Challenger loses!'}`,
     ...logs.filter(l => l.includes('leveled up') || l.includes('EXP') || l.includes('Badge') || l.includes('rent')),
   ];
-  return { players, gameLogs: newGameLogs, battleState: { ...state.battleState, isActive: false, logs } };
+  return {
+    players,
+    gameLogs: newGameLogs,
+    winner: championWon ? players[chalIndex].name : (state as GameState & { winner?: string }).winner ?? null,
+    battleState: { ...state.battleState, isActive: false, logs },
+  };
 }
 
 export function reducerEndBattle(state: GameState): Partial<GameState> {
@@ -619,27 +665,55 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
   const rand = Math.random();
 
   if (deckType === 'Scout') {
-    if (rand < 1 / 6) { msg = 'Found a hidden item! Gain 100 TP.'; player.tp += 100; }
-    else if (rand < 2 / 6) { msg = 'Scouted a shortcut. Advance 3 spaces.'; player.position = (player.position + 3) % 40; }
-    else if (rand < 3 / 6) { msg = 'Ambushed by wild creatures! Lose 50 TP.'; player.tp -= 50; }
-    else if (rand < 4 / 6) {
+    if (rand < 1 / 8) { msg = 'Found a hidden item! Gain 100 TP.'; player.tp += 100; }
+    else if (rand < 2 / 8) { msg = 'Scouted a shortcut. Advance 3 spaces.'; player.position = (player.position + 3) % 40; }
+    else if (rand < 3 / 8) { msg = 'Ambushed by wild creatures! Lose 50 TP.'; player.tp -= 50; }
+    else if (rand < 4 / 8) {
       msg = 'Found a trail back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
       const h = healAndExpParty(player, 30); player.position = h.position; player.tp = h.tp; player.party = h.party;
-    } else if (rand < 5 / 6) {
+    } else if (rand < 5 / 8) {
       msg = 'Spotted a gym nearby! Challenge the nearest gym.'; moveToGym(nearestGym); movedToGym = true;
-    } else {
+    } else if (rand < 6 / 8) {
       msg = 'Received orders to report to Gym 1! Challenge the gym leader.'; moveToGym(5); movedToGym = true;
+    } else if (rand < 7 / 8) {
+      msg = 'Lost in the wilderness! Go directly to Lost in Adventure — do not collect TP.';
+      player.position = 30; player.inAdventure = true;
+    } else {
+      const perPlayer = 50;
+      let collected = 0;
+      state.players.forEach((p, idx) => {
+        if (idx !== state.currentPlayerIndex && !p.isBankrupt) {
+          players[idx] = { ...players[idx], tp: players[idx].tp - perPlayer };
+          collected += perPlayer;
+        }
+      });
+      player.tp += collected;
+      msg = `Scout Network! Collected ${perPlayer} TP from each rival trainer (+${collected} TP total).`;
     }
   } else {
-    if (rand < 1 / 5) { msg = 'Read up on battling techniques. Gain 200 TP.'; player.tp += 200; }
-    else if (rand < 2 / 5) { msg = 'Bought new supplies. Pay 100 TP.'; player.tp -= 100; }
-    else if (rand < 3 / 5) {
+    if (rand < 1 / 7) { msg = 'Read up on battling techniques. Gain 200 TP.'; player.tp += 200; }
+    else if (rand < 2 / 7) { msg = 'Bought new supplies. Pay 100 TP.'; player.tp -= 100; }
+    else if (rand < 3 / 7) {
       msg = 'Your journal led you back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
       const h = healAndExpParty(player, 30); player.position = h.position; player.tp = h.tp; player.party = h.party;
-    } else if (rand < 4 / 5) {
+    } else if (rand < 4 / 7) {
       msg = 'Your notes pointed to a nearby gym! Challenge the gym leader.'; moveToGym(nearestGym); movedToGym = true;
-    } else {
+    } else if (rand < 5 / 7) {
       msg = 'Your journal says to start from the top — head to Gym 1! Challenge the gym leader.'; moveToGym(5); movedToGym = true;
+    } else if (rand < 6 / 7) {
+      msg = 'Got lost reading old notes! Go directly to Lost in Adventure — do not collect TP.';
+      player.position = 30; player.inAdventure = true;
+    } else {
+      const perPlayer = 50;
+      let paid = 0;
+      state.players.forEach((p, idx) => {
+        if (idx !== state.currentPlayerIndex && !p.isBankrupt) {
+          players[idx] = { ...players[idx], tp: players[idx].tp + perPlayer };
+          paid += perPlayer;
+        }
+      });
+      player.tp -= paid;
+      msg = `Trainer Convention! Pay ${perPlayer} TP to each rival trainer (-${paid} TP total).`;
     }
   }
 

@@ -1,10 +1,10 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SPACES } from '../data/board';
+import { BOARD_SPACES, GROUP_HOUSE_COST, GROUP_RENT_PER_TIER } from '../data/board';
 import { CREATURES } from '../data/creatures';
 import './TileInfoModal.css';
 
-const POWER_COST = (tier: number, groupSize: number) => 100 * (tier + 1) * groupSize;
+const POWER_COST = (groupId: string, groupSize: number) => (GROUP_HOUSE_COST[groupId] ?? 100) * groupSize;
 const TIER_STARS = ['○', '★', '★★', '★★★', '★★★★'];
 
 export const TileInfoModal: React.FC = () => {
@@ -31,12 +31,13 @@ export const TileInfoModal: React.FC = () => {
     ? Math.min(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0))
     : 0;
   const canPowerUp = isOwner && ownsAll && powerUpTier < 4 && powerUpTier <= minGroupTier;
-  const nextCost = POWER_COST(powerUpTier, groupSpaces.length);
+  const nextCost = POWER_COST(space.groupId!, groupSpaces.length);
   const canAfford = currentPlayer.tp >= nextCost;
 
+  const rentPerTier = GROUP_RENT_PER_TIER[space.groupId!] ?? 50;
   // Rent at each tier
-  const currentRent = Math.floor(species.baseRent * (1 + powerUpTier * 0.5));
-  const nextRent = Math.floor(species.baseRent * (1 + (powerUpTier + 1) * 0.5));
+  const currentRent = species.baseRent + rentPerTier * powerUpTier;
+  const nextRent = species.baseRent + rentPerTier * (powerUpTier + 1);
 
   const isPlayerTurn = !currentPlayer.isCpu && (phase === 'ROLL' || phase === 'END_TURN' || phase === 'BANKRUPTCY');
 
@@ -56,8 +57,7 @@ export const TileInfoModal: React.FC = () => {
     ? Math.max(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0))
     : 0;
   const canSell = isOwner && powerUpTier > 0 && powerUpTier >= maxTierInGroup;
-  const sellTierCost = 100 * powerUpTier * groupSpaces.length;
-  const sellRefund = Math.floor(sellTierCost / 2);
+  const sellRefund = Math.floor(POWER_COST(space.groupId!, groupSpaces.length) / 2);
 
   return (
     <div className="modal-overlay" onClick={() => selectTile(null)}>
@@ -109,6 +109,14 @@ export const TileInfoModal: React.FC = () => {
             <div className="stat-label">DEF</div>
             <div className="stat-value">{displayStats.def}</div>
           </div>
+        </div>
+        {/* Rent schedule */}
+        <div style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+          {[0,1,2,3,4].map(t => (
+            <span key={t} style={{ background: t === powerUpTier ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: t === powerUpTier ? '#fbbf24' : '#9ca3af' }}>
+              {t === 0 ? 'Base' : `T${t}`}: {species.baseRent + rentPerTier * t} TP
+            </span>
+          ))}
         </div>
 
         {/* Evolutions */}

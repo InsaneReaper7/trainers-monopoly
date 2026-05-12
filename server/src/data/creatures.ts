@@ -6,7 +6,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'brown',
     tier: 'Common',
     captureCost: 60,
-    baseRent: 30,
+    baseRent: 30,  // +50/tier → max tier4: 230
     baseForm: {
       name: 'Terravore',
       stage: 0,
@@ -25,7 +25,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'lightBlue',
     tier: 'Common',
     captureCost: 100,
-    baseRent: 50,
+    baseRent: 60,
     baseForm: {
       name: 'Pyrowl',
       stage: 0,
@@ -50,7 +50,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'pink',
     tier: 'Common',
     captureCost: 120,
-    baseRent: 60,
+    baseRent: 100,
     baseForm: {
       name: 'Lumibulb',
       stage: 0,
@@ -75,7 +75,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'orange',
     tier: 'Uncommon',
     captureCost: 160,
-    baseRent: 80,
+    baseRent: 140,
     baseForm: {
       name: 'Voltpaw',
       stage: 0,
@@ -94,7 +94,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'red',
     tier: 'Uncommon',
     captureCost: 200,
-    baseRent: 100,
+    baseRent: 180,
     baseForm: {
       name: 'Psyhorn',
       stage: 0,
@@ -119,7 +119,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'yellow',
     tier: 'Uncommon',
     captureCost: 220,
-    baseRent: 110,
+    baseRent: 220,
     baseForm: {
       name: 'Shadowrak',
       stage: 0,
@@ -138,7 +138,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'green',
     tier: 'Rare',
     captureCost: 300,
-    baseRent: 150,
+    baseRent: 300,
     baseForm: {
       name: 'Glacieon',
       stage: 0,
@@ -163,7 +163,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'darkBlue',
     tier: 'Rare',
     captureCost: 400,
-    baseRent: 200,
+    baseRent: 450,
     baseForm: {
       name: 'Dracoveil',
       stage: 0,

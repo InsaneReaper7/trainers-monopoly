@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import type { ActiveCreature, CreatureForm } from '../types';
-import { BOARD_SPACES } from '../data/board';
+import { BOARD_SPACES, GROUP_HOUSE_COST, GROUP_RENT_PER_TIER } from '../data/board';
 import { CREATURES } from '../data/creatures';
-import { GYM_LEADERS } from '../data/gyms';
+import { GYM_LEADERS, CHAMPION } from '../data/gyms';
 import { calculateDamage } from '../utils/combat';
 import { mpIntercept } from '../multiplayer/actionBridge';
 
@@ -47,7 +47,7 @@ export interface TradeState {
   responderId: string;
 }
 
-export type GamePhase = 'MENU' | 'SETUP' | 'ROLL' | 'ACTION' | 'BATTLE' | 'END_TURN' | 'BANKRUPTCY' | 'ADVENTURE';
+export type GamePhase = 'MENU' | 'SETUP' | 'ROLL' | 'ACTION' | 'BATTLE' | 'END_TURN' | 'BANKRUPTCY' | 'ADVENTURE' | 'GAME_OVER';
 
 interface GameState {
   players: Player[];
@@ -62,6 +62,7 @@ interface GameState {
   selectedTileIndex: number | null;
   rolledDoubles: boolean;
   pendingGymChallenge: boolean;
+  winner: string | null;
 
   // Actions
   toggleStorageModal: () => void;
@@ -69,7 +70,9 @@ interface GameState {
   selectTile: (index: number | null) => void;
   powerUpTile: (spaceIndex: number) => void;
   addPlayer: (name: string, color: string, isCpu: boolean) => void;
-  addCpuPlayers: () => void;
+  addCpuPlayers: (count?: number) => void;
+  winner: string | null;
+  startChampionBattle: () => void;
   quitToMenu: () => void;
   startGame: () => void;
   rollDice: () => void;
@@ -156,6 +159,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   pendingGymChallenge: false,
   cardMessage: null,
   gameLogs: [],
+  winner: null,
 
   addLog: (msg: string) => set(state => ({ gameLogs: [...state.gameLogs.slice(-49), msg] })),
 
@@ -183,8 +187,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (ownership.powerUpTier >= 4) return state;
 
-    // Cost: 100 * (current tier + 1) * group_size
-    const cost = 100 * (ownership.powerUpTier + 1) * groupSpaces.length;
+    // Cost: GROUP_HOUSE_COST per tile in the group (flat per tier)
+    const cost = (GROUP_HOUSE_COST[space.groupId] ?? 100) * groupSpaces.length;
     if (player.tp < cost) return state;
 
     player.tp -= cost;
@@ -214,7 +218,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     boardOwnership[spaceIndex] = { ...ownership, powerUpTier: ownership.powerUpTier + 1 };
     players[state.currentPlayerIndex] = player;
 
-    const newRent = Math.floor(species.baseRent * (1 + boardOwnership[spaceIndex].powerUpTier * 0.5));
+    const newRent = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId] ?? 50) * boardOwnership[spaceIndex].powerUpTier;
     const newLogs = [...state.gameLogs.slice(-49), `⚡ ${player.name} powered up ${species.baseForm.name} to Tier ${boardOwnership[spaceIndex].powerUpTier}! New rent: ${newRent} TP`];
 
     return { players, boardOwnership, gameLogs: newLogs };
@@ -254,7 +258,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (ownership.powerUpTier < maxTierInGroup) return state;
 
     const species = CREATURES[space.speciesId];
-    const tierCost = 100 * ownership.powerUpTier * groupSpaces.length;
+    const tierCost = (GROUP_HOUSE_COST[space.groupId] ?? 100) * groupSpaces.length;
     const refund = Math.floor(tierCost / 2);
 
     player.tp += refund;
@@ -290,6 +294,13 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (boardOwnership[Number(key)].ownerId === player.id) delete boardOwnership[Number(key)];
     });
     players[state.currentPlayerIndex] = player;
+
+    const activePlayers = players.filter(p => !p.isBankrupt);
+    if (activePlayers.length === 1) {
+      const newLogs = [...state.gameLogs.slice(-49), `💀 ${player.name} has gone bankrupt!`, `🏆 ${activePlayers[0].name} is the last trainer standing!`];
+      return { players, boardOwnership, phase: 'GAME_OVER', winner: activePlayers[0].name, gameLogs: newLogs };
+    }
+
     let nextIndex = (state.currentPlayerIndex + 1) % players.length;
     let attempts = 0;
     while (players[nextIndex]?.isBankrupt && attempts < players.length) {
@@ -331,11 +342,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     ]
   })),
 
-  addCpuPlayers: () => set((state) => {
+  addCpuPlayers: (count?: number) => set((state) => {
     const cpuColors = ['#3b82f6', '#ef4444', '#22c55e', '#eab308', '#14b8a6', '#a855f7', '#f97316', '#ec4899'];
     const names = ['Rival Gary', 'Rival Blue', 'Rival Silver', 'Rival Wally', 'Rival Kris', 'Rival Ethan'];
 
-    const toAdd = 6 - state.players.length;
+    const maxToAdd = 6 - state.players.length;
+    const toAdd = count !== undefined ? Math.min(count, maxToAdd) : maxToAdd;
     if (toAdd <= 0) return state;
 
     const newPlayers = [];
@@ -361,7 +373,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     return { players: [...state.players, ...newPlayers] };
   }),
 
-  quitToMenu: () => set({ players: [], phase: 'MENU', boardOwnership: {}, currentPlayerIndex: 0, battleState: null }),
+  quitToMenu: () => set({ players: [], phase: 'MENU', boardOwnership: {}, currentPlayerIndex: 0, battleState: null, winner: null }),
 
   startGame: () => set({ phase: 'ROLL', currentPlayerIndex: 0 }),
 
@@ -653,12 +665,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     // Refund TP (half the capture cost, ignoring any evolutions)
     player.tp += Math.floor(species.captureCost / 2);
     
-    // Remove Ownership
+    // Remove ALL ownership entries pointing to this creature (group tiles share same creatureId)
     const boardOwnership = { ...state.boardOwnership };
-    const spaceIndex = Object.keys(boardOwnership).find(key => boardOwnership[Number(key)].creatureId === creatureId);
-    if (spaceIndex !== undefined) {
-      delete boardOwnership[Number(spaceIndex)];
-    }
+    Object.keys(boardOwnership).forEach(key => {
+      if (boardOwnership[Number(key)].creatureId === creatureId) delete boardOwnership[Number(key)];
+    });
 
     players[state.currentPlayerIndex] = player;
     
@@ -676,14 +687,14 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const space = BOARD_SPACES[spaceIndex];
     const species = CREATURES[space.speciesId!];
-    
+
     const players = [...state.players];
     const fromPlayer = { ...players[state.currentPlayerIndex] };
     const toPlayerIndex = players.findIndex(p => p.id === ownership.ownerId);
-    
+
     if (toPlayerIndex === -1 || fromPlayer.id === ownership.ownerId) return state;
 
-    const rentAmount = Math.floor(species.baseRent * (1 + ownership.powerUpTier * 0.5));
+    const rentAmount = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId!] ?? 50) * ownership.powerUpTier;
     fromPlayer.tp -= rentAmount;
     players[toPlayerIndex].tp += rentAmount;
     players[state.currentPlayerIndex] = fromPlayer;
@@ -696,6 +707,26 @@ export const useGameStore = create<GameState>((set, get) => ({
       return { players, gameLogs: newLogs, phase: 'BANKRUPTCY' };
     }
     return { players, phase: 'END_TURN', gameLogs: newLogs };
+  }),
+
+  startChampionBattle: () => set((state) => {
+    if (mpIntercept('startChampionBattle', [])) return state;
+    const player = state.players[state.currentPlayerIndex];
+    if (player.badges.length < 8) return state;
+    if (BOARD_SPACES[player.position].index !== 20) return state;
+    const champCreature = CHAMPION.party[Math.floor(Math.random() * CHAMPION.party.length)];
+    return {
+      phase: 'BATTLE',
+      battleState: {
+        isActive: true,
+        type: 'CHAMPION',
+        challengerId: player.id,
+        defenderId: 'CHAMPION',
+        defenderCreatureTemp: champCreature,
+        round: 1,
+        logs: [`${player.name} challenges ${CHAMPION.name}! Face ${champCreature.name}!`]
+      }
+    };
   }),
 
   startBattle: (spaceIndex, isGym) => set((state) => {
@@ -778,7 +809,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         const tileSpecies = CREATURES[space.speciesId!];
         if (tileSpecies) {
           const forfeitOwnership = state.boardOwnership[challenger.position];
-          const forfeitFullRent = Math.floor(tileSpecies.baseRent * (1 + (forfeitOwnership?.powerUpTier ?? 0) * 0.5));
+          const forfeitFullRent = tileSpecies.baseRent + (GROUP_RENT_PER_TIER[space.groupId ?? ''] ?? 50) * (forfeitOwnership?.powerUpTier ?? 0);
           const rentAmount = Math.floor(forfeitFullRent / 2);
           players[players.findIndex(p => p.id === challenger.id)].tp -= rentAmount;
           if (defIdx !== -1) players[defIdx].tp += rentAmount;
@@ -832,9 +863,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       const space = BOARD_SPACES[challenger.position];
       const species = CREATURES[space.speciesId!];
       const tileOwnership = state.boardOwnership[challenger.position];
-      const fullRent = Math.floor(species.baseRent * (1 + (tileOwnership?.powerUpTier ?? 0) * 0.5));
-      const rentAmount = chalWins ? Math.floor(fullRent / 2) : fullRent;
-      logs.push(chalWins ? `Challenger pays HALF rent (${rentAmount} TP of ${fullRent} TP)!` : `Challenger pays FULL rent (${rentAmount} TP)!`);
+      const fullRent = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId!] ?? 50) * (tileOwnership?.powerUpTier ?? 0);
+      const rentAmount = chalWins ? Math.floor(fullRent / 2) : Math.floor(fullRent * 1.3);
+      logs.push(chalWins ? `Challenger pays HALF rent (${rentAmount} TP of ${fullRent} TP)!` : `Challenger pays 30% MORE rent (${rentAmount} TP of ${fullRent} TP)!`);
       
       const defIndex = players.findIndex(p => p.id === state.battleState!.defenderId);
       players[chalIndex].tp -= rentAmount;
@@ -868,8 +899,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       } else {
         logs.push('Lost the Gym Battle. Try again later!');
       }
+    } else if (state.battleState.type === 'CHAMPION') {
+      if (chalWins) {
+        logs.push(`${challenger.name} defeated ${CHAMPION.name} and became Champion!`);
+      } else {
+        logs.push(`${challenger.name} lost to ${CHAMPION.name}! Better train harder…`);
+      }
     }
-    
+
+    const championWon = state.battleState.type === 'CHAMPION' && chalWins;
+
     const newGameLogs = [
       ...state.gameLogs.slice(-45),
       `⚔️ ${challenger.name}'s ${chalForm!.name} vs ${defName} — ${chalWins ? challenger.name + ' wins!' : 'Challenger loses!'}`,
@@ -879,6 +918,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     return {
       players,
       gameLogs: newGameLogs,
+      winner: championWon ? players[chalIndex].name : state.winner,
       battleState: {
         ...state.battleState,
         isActive: false,
@@ -926,51 +966,83 @@ export const useGameStore = create<GameState>((set, get) => ({
     const rand = Math.random();
 
     if (deckType === 'Scout') {
-      if (rand < 1 / 6) {
+      if (rand < 1 / 8) {
         msg = 'Found a hidden item! Gain 100 TP.';
         player.tp += 100;
-      } else if (rand < 2 / 6) {
+      } else if (rand < 2 / 8) {
         msg = 'Scouted a shortcut. Advance 3 spaces.';
         player.position = (player.position + 3) % 40;
-      } else if (rand < 3 / 6) {
+      } else if (rand < 3 / 8) {
         msg = 'Ambushed by wild creatures! Lose 50 TP.';
         player.tp -= 50;
-      } else if (rand < 4 / 6) {
+      } else if (rand < 4 / 8) {
         msg = 'Found a trail back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
         const healed = healAndExpParty(player, 30);
         player.position = healed.position;
         player.tp = healed.tp;
         player.party = healed.party;
-      } else if (rand < 5 / 6) {
+      } else if (rand < 5 / 8) {
         msg = 'Spotted a gym nearby! Challenge the nearest gym.';
         moveToGym(nearestGym);
         movedToGym = true;
-      } else {
+      } else if (rand < 6 / 8) {
         msg = 'Received orders to report to Gym 1! Challenge the gym leader.';
         moveToGym(5);
         movedToGym = true;
+      } else if (rand < 7 / 8) {
+        msg = 'Lost in the wilderness! Go directly to Lost in Adventure — do not collect TP.';
+        player.position = 30;
+        player.inAdventure = true;
+      } else {
+        // Collect 50 TP from each other player
+        const perPlayer = 50;
+        let collected = 0;
+        state.players.forEach((p, idx) => {
+          if (idx !== state.currentPlayerIndex && !p.isBankrupt) {
+            players[idx] = { ...players[idx], tp: players[idx].tp - perPlayer };
+            collected += perPlayer;
+          }
+        });
+        player.tp += collected;
+        msg = `Scout Network! Collected ${perPlayer} TP from each rival trainer (+${collected} TP total).`;
       }
     } else {
-      if (rand < 1 / 5) {
+      if (rand < 1 / 7) {
         msg = 'Read up on battling techniques. Gain 200 TP.';
         player.tp += 200;
-      } else if (rand < 2 / 5) {
+      } else if (rand < 2 / 7) {
         msg = 'Bought new supplies. Pay 100 TP.';
         player.tp -= 100;
-      } else if (rand < 3 / 5) {
+      } else if (rand < 3 / 7) {
         msg = 'Your journal led you back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
         const healed = healAndExpParty(player, 30);
         player.position = healed.position;
         player.tp = healed.tp;
         player.party = healed.party;
-      } else if (rand < 4 / 5) {
+      } else if (rand < 4 / 7) {
         msg = 'Your notes pointed to a nearby gym! Challenge the gym leader.';
         moveToGym(nearestGym);
         movedToGym = true;
-      } else {
+      } else if (rand < 5 / 7) {
         msg = 'Your journal says to start from the top — head to Gym 1! Challenge the gym leader.';
         moveToGym(5);
         movedToGym = true;
+      } else if (rand < 6 / 7) {
+        msg = 'Got lost reading old notes! Go directly to Lost in Adventure — do not collect TP.';
+        player.position = 30;
+        player.inAdventure = true;
+      } else {
+        // Pay 50 TP to each other player
+        const perPlayer = 50;
+        let paid = 0;
+        state.players.forEach((p, idx) => {
+          if (idx !== state.currentPlayerIndex && !p.isBankrupt) {
+            players[idx] = { ...players[idx], tp: players[idx].tp + perPlayer };
+            paid += perPlayer;
+          }
+        });
+        player.tp -= paid;
+        msg = `Trainer Convention! Pay ${perPlayer} TP to each rival trainer (-${paid} TP total).`;
       }
     }
 
@@ -1259,6 +1331,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       const space = BOARD_SPACES[spaceIndex];
       
       setTimeout(() => {
+        // Champion's Arena with all 8 badges
+        if (space.index === 20 && player.badges.length >= 8 && player.party.length > 0) {
+          get().startChampionBattle();
+          return;
+        }
+
         if (space.type === 'Creature') {
           const ownership = state.boardOwnership[spaceIndex];
           if (!ownership) {
@@ -1387,8 +1465,8 @@ export const useGameStore = create<GameState>((set, get) => ({
           const minTier = Math.min(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0));
           if (ownership.powerUpTier > minTier) return false;
 
-          // Must be able to afford it
-          const cost = 100 * (ownership.powerUpTier + 1) * groupSpaces.length;
+          // Must be able to afford it (flat per-tier cost)
+          const cost = (GROUP_HOUSE_COST[space.groupId!] ?? 100) * groupSpaces.length;
           return p.tp >= cost + 200; // keep a 200 TP buffer
         });
 

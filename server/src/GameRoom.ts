@@ -6,7 +6,7 @@ import {
 import {
   createInitialGameState,
   reducerRollDice, reducerEndTurn, reducerCaptureTile, reducerPayRent,
-  reducerStartBattle, reducerSelectBattleCreature, reducerExecuteBattleRound, reducerEndBattle,
+  reducerStartBattle, reducerStartChampionBattle, reducerSelectBattleCreature, reducerExecuteBattleRound, reducerEndBattle,
   reducerReleaseCreature, reducerDrawCard, reducerPayTax, reducerCaptureWildCreature,
   reducerClearWildEncounter,
   reducerInitiateTrade, reducerUpdateTradeOffer, reducerProposeTrade, reducerNegotiateTrade, reducerAcceptTrade,
@@ -161,6 +161,9 @@ export class GameRoom {
         const isGym = space?.type === 'Gym';
         return reducerStartBattle(state, spaceIndex, isGym);
       }
+
+      case 'startChampionBattle':
+        return reducerStartChampionBattle(state);
 
       case 'selectBattleCreature':
         return reducerSelectBattleCreature(state, args[0] as string);
