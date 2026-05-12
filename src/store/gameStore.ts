@@ -791,7 +791,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     let defType;
     let defName;
 
-    if (state.battleState.type === 'GYM') {
+    if (state.battleState.type === 'GYM' || state.battleState.type === 'CHAMPION') {
       const form = state.battleState.defenderCreatureTemp!;
       defStats = form.stats;
       defType = form.type;

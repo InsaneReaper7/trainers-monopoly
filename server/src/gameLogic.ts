@@ -511,7 +511,7 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
   let defType: string;
   let defName: string;
 
-  if (state.battleState.type === 'GYM') {
+  if (state.battleState.type === 'GYM' || state.battleState.type === 'CHAMPION') {
     const form = state.battleState.defenderCreatureTemp!;
     defStats = form.stats; defType = form.type; defName = form.name;
   } else {
