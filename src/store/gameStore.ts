@@ -71,7 +71,6 @@ interface GameState {
   powerUpTile: (spaceIndex: number) => void;
   addPlayer: (name: string, color: string, isCpu: boolean) => void;
   addCpuPlayers: (count?: number) => void;
-  winner: string | null;
   startChampionBattle: () => void;
   quitToMenu: () => void;
   startGame: () => void;
