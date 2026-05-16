@@ -88,7 +88,7 @@ export class GameRoom {
 
   // ── Game start ─────────────────────────────────────────────────────────────
 
-  startGame(): void {
+  startGame(settings?: { startingTp: 500 | 1000 | 1500; taxPot: boolean }): void {
     this.phase = 'PLAYING';
     const humanPlayers = this.slots.map(s => ({
       id: s.playerId,
@@ -96,7 +96,7 @@ export class GameRoom {
       color: s.color,
       isCpu: false,
     }));
-    this.gameState = createInitialGameState(humanPlayers);
+    this.gameState = createInitialGameState(humanPlayers, settings);
     this.broadcast();
     this.scheduleCpuIfNeeded();
   }

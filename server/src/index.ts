@@ -101,14 +101,14 @@ io.on('connection', socket => {
   });
 
   // ── lobby:start_game ──
-  socket.on('lobby:start_game', () => {
+  socket.on('lobby:start_game', (data) => {
     const info = roomManager.getSocketInfo(socket.id);
     if (!info) return;
     const room = roomManager.getRoom(info.roomCode);
     if (!room) return;
     if (room.hostSlotIndex !== info.slotIndex) return; // only host can start
     if (room.slots.length < 1) return;
-    room.startGame();
+    room.startGame(data?.settings);
     console.log(`[room] game started in ${info.roomCode}`);
   });
 

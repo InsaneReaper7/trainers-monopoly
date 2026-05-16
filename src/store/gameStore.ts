@@ -65,6 +65,9 @@ interface GameState {
   winner: string | null;
   turnOrderRolls: Record<string, [number, number]>;
   turnOrderPending: string[];
+  settings: { startingTp: 500 | 1000 | 1500; taxPot: boolean };
+  taxPotBalance: Record<number, number>;
+  updateSettings: (s: Partial<GameState['settings']>) => void;
 
   // Actions
   toggleStorageModal: () => void;
@@ -164,6 +167,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   winner: null,
   turnOrderRolls: {},
   turnOrderPending: [],
+  settings: { startingTp: 1500, taxPot: false },
+  taxPotBalance: {},
+
+  updateSettings: (s) => set(state => ({ settings: { ...state.settings, ...s } })),
 
   addLog: (msg: string) => set(state => ({ gameLogs: [...state.gameLogs.slice(-49), msg] })),
 
@@ -379,15 +386,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     return { players: [...state.players, ...newPlayers] };
   }),
 
-  quitToMenu: () => set({ players: [], phase: 'MENU', boardOwnership: {}, currentPlayerIndex: 0, battleState: null, winner: null, turnOrderRolls: {}, turnOrderPending: [] }),
+  quitToMenu: () => set({ players: [], phase: 'MENU', boardOwnership: {}, currentPlayerIndex: 0, battleState: null, winner: null, turnOrderRolls: {}, turnOrderPending: [], taxPotBalance: {} }),
 
-  startGame: () => set(state => ({
-    phase: 'TURN_ORDER_ROLL',
-    currentPlayerIndex: 0,
-    turnOrderRolls: {},
-    turnOrderPending: state.players.map(p => p.id),
-    gameLogs: ['Everyone rolls to determine who goes first!'],
-  })),
+  startGame: () => set(state => {
+    // Apply startingTp setting to all players
+    const players = state.players.map(p => ({ ...p, tp: state.settings.startingTp }));
+    // Init tax pot balances at 0 for all tax tiles
+    const taxPotBalance: Record<number, number> = {};
+    if (state.settings.taxPot) {
+      BOARD_SPACES.filter(s => s.type === 'Tax').forEach(s => { taxPotBalance[s.index] = 0; });
+    }
+    return {
+      players,
+      phase: 'TURN_ORDER_ROLL',
+      currentPlayerIndex: 0,
+      turnOrderRolls: {},
+      turnOrderPending: players.map(p => p.id),
+      taxPotBalance,
+      gameLogs: ['Everyone rolls to determine who goes first!'],
+    };
+  }),
 
   rollForTurnOrder: () => set(state => {
     if (mpIntercept('rollForTurnOrder', [])) return state;
@@ -1178,6 +1196,30 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (mpIntercept('payTax', [amount])) return state;
     const players = [...state.players];
     const player = { ...players[state.currentPlayerIndex] };
+    const spaceIndex = player.position;
+
+    if (state.settings.taxPot) {
+      const currentPot = state.taxPotBalance[spaceIndex] ?? 0;
+      if (currentPot > 0) {
+        // Collect the pot first, then pay the tax
+        player.tp += currentPot - amount;
+        players[state.currentPlayerIndex] = player;
+        const newLogs = [...state.gameLogs.slice(-49), `🏆 ${player.name} collected ${currentPot} TP from the pot and paid ${amount} TP tax! Net: +${currentPot - amount} TP`];
+        if (player.tp < 0) {
+          return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'BANKRUPTCY', gameLogs: newLogs };
+        }
+        return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'END_TURN', gameLogs: newLogs };
+      }
+      // Pot is empty — just add this payment to it
+      player.tp -= amount;
+      players[state.currentPlayerIndex] = player;
+      const newLogs = [...state.gameLogs.slice(-49), `💰 ${player.name} paid ${amount} TP — pot now holds ${amount} TP!`];
+      if (player.tp < 0) {
+        return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'BANKRUPTCY', gameLogs: newLogs };
+      }
+      return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'END_TURN', gameLogs: newLogs };
+    }
+
     player.tp -= amount;
     players[state.currentPlayerIndex] = player;
     const newLogs = [...state.gameLogs.slice(-49), `💰 ${player.name} paid ${amount} TP in taxes.`];

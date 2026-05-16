@@ -1,8 +1,10 @@
 import React from 'react';
 import { useMultiplayerStore } from '../../multiplayer/multiplayerStore';
+import { useGameStore } from '../../store/gameStore';
 
 export const WaitingRoom: React.FC = () => {
   const { roomCode, lobbyPlayers, hostSlotIndex, mySlotIndex, startGame, leaveRoom } = useMultiplayerStore();
+  const { settings, updateSettings } = useGameStore();
 
   const isHost = mySlotIndex === hostSlotIndex;
   const canStart = lobbyPlayers.length >= 2;
@@ -63,6 +65,33 @@ export const WaitingRoom: React.FC = () => {
           </div>
         ))}
       </div>
+
+      {isHost && (
+        <div style={{ borderTop: '1px solid #334155', paddingTop: '1rem', marginBottom: '1rem' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.78rem', marginBottom: '0.6rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Game Settings</div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <span style={{ color: '#ccc', fontSize: '0.85rem' }}>Starting Currency</span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {([500, 1000, 1500] as const).map(v => (
+                <button key={v} className="btn-primary" onClick={() => updateSettings({ startingTp: v })}
+                  style={{ padding: '3px 8px', fontSize: '0.75rem', background: settings.startingTp === v ? '#6366f1' : '#334155' }}>
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ color: '#ccc', fontSize: '0.85rem' }}>Tax Pot</div>
+              <div style={{ color: '#64748b', fontSize: '0.68rem' }}>Tax payments accumulate; landing player collects</div>
+            </div>
+            <button className="btn-primary" onClick={() => updateSettings({ taxPot: !settings.taxPot })}
+              style={{ padding: '3px 12px', fontSize: '0.8rem', background: settings.taxPot ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}>
+              {settings.taxPot ? 'ON' : 'OFF'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {isHost ? (
         <div style={{ display: 'flex', gap: '0.75rem' }}>

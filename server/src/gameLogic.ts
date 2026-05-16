@@ -41,12 +41,13 @@ const log = (state: GameState, msg: string) =>
 // ─── Initial state factory ───────────────────────────────────────────────────
 
 export function createInitialGameState(
-  humanPlayers: { id: string; name: string; color: string; isCpu: boolean }[]
+  humanPlayers: { id: string; name: string; color: string; isCpu: boolean }[],
+  settings: { startingTp: 500 | 1000 | 1500; taxPot: boolean } = { startingTp: 1500, taxPot: false }
 ): GameState {
   const players = humanPlayers.map(p => ({
     id: p.id,
     name: p.name,
-    tp: 1500,
+    tp: settings.startingTp,
     position: 0,
     party: [],
     storage: [],
@@ -76,6 +77,10 @@ export function createInitialGameState(
     gameLogs: ['Everyone rolls to determine who goes first!'],
     turnOrderRolls: {},
     turnOrderPending: players.map(p => p.id),
+    settings,
+    taxPotBalance: settings.taxPot
+      ? Object.fromEntries(BOARD_SPACES.filter(s => s.type === 'Tax').map(s => [s.index, 0]))
+      : {},
   };
 }
 
@@ -821,6 +826,24 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
 export function reducerPayTax(state: GameState, amount: number): Partial<GameState> {
   const players = [...state.players];
   const player = { ...players[state.currentPlayerIndex] };
+  const spaceIndex = player.position;
+
+  if (state.settings?.taxPot) {
+    const currentPot = state.taxPotBalance[spaceIndex] ?? 0;
+    if (currentPot > 0) {
+      player.tp += currentPot - amount;
+      players[state.currentPlayerIndex] = player;
+      const newLogs = log(state, `🏆 ${player.name} collected ${currentPot} TP from the pot and paid ${amount} TP tax! Net: +${currentPot - amount} TP`);
+      if (player.tp < 0) return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'BANKRUPTCY', gameLogs: newLogs };
+      return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'END_TURN', gameLogs: newLogs };
+    }
+    player.tp -= amount;
+    players[state.currentPlayerIndex] = player;
+    const newLogs = log(state, `💰 ${player.name} paid ${amount} TP — pot now holds ${amount} TP!`);
+    if (player.tp < 0) return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'BANKRUPTCY', gameLogs: newLogs };
+    return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'END_TURN', gameLogs: newLogs };
+  }
+
   player.tp -= amount;
   players[state.currentPlayerIndex] = player;
   const newLogs = log(state, `💰 ${player.name} paid ${amount} TP in taxes.`);

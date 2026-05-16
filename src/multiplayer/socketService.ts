@@ -31,7 +31,7 @@ export interface ClientToServerEvents {
   'room:join': (data: { roomCode: string; playerName: string; color: string }) => void;
   'room:reconnect': (data: { roomCode: string; reconnectToken: string }) => void;
   'room:leave': () => void;
-  'lobby:start_game': () => void;
+  'lobby:start_game': (data?: { settings?: { startingTp: 500 | 1000 | 1500; taxPot: boolean } }) => void;
   'game:action': (data: { action: ActionName; args: unknown[] }) => void;
 }
 

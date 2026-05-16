@@ -32,7 +32,7 @@ const groupColors: Record<string, string> = {
 };
 
 export const Board: React.FC = () => {
-  const { players, boardOwnership, gameLogs, selectTile } = useGameStore();
+  const { players, boardOwnership, gameLogs, selectTile, settings, taxPotBalance } = useGameStore();
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -69,6 +69,9 @@ export const Board: React.FC = () => {
                   <span className={`power-pips${ownership.powerUpTier >= 5 ? ' hotel-icon' : ''}`}>
                     {ownership.powerUpTier >= 5 ? '🏨' : '⚡'.repeat(ownership.powerUpTier)}
                   </span>
+                )}
+                {settings.taxPot && space.type === 'Tax' && (taxPotBalance[space.index] ?? 0) > 0 && (
+                  <span className="tax-pot-badge">💰{taxPotBalance[space.index]}</span>
                 )}
               </div>
               

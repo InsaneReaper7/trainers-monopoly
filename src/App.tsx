@@ -15,7 +15,7 @@ import './App.css';
 type AppScreen = 'MENU' | 'SP_SETUP' | 'MP_LOBBY' | 'GAME';
 
 function App() {
-  const { phase, addPlayer, addCpuPlayers, startGame, players, quitToMenu, winner } = useGameStore();
+  const { phase, addPlayer, addCpuPlayers, startGame, players, quitToMenu, winner, settings, updateSettings } = useGameStore();
   const { mpPhase, leaveRoom } = useMultiplayerStore();
   const [screen, setScreen] = useState<AppScreen>('MENU');
   const [playerName, setPlayerName] = useState('');
@@ -143,6 +143,41 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Game Settings */}
+        <div style={{ borderTop: '1px solid #334155', paddingTop: '1rem', marginBottom: '1rem' }}>
+          <div style={{ color: '#94a3b8', fontSize: '0.8rem', marginBottom: '0.75rem', textAlign: 'left', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Game Settings</div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+            <span style={{ color: '#ccc', fontSize: '0.9rem' }}>Starting Currency</span>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              {([500, 1000, 1500] as const).map(v => (
+                <button
+                  key={v}
+                  className="btn-primary"
+                  onClick={() => updateSettings({ startingTp: v })}
+                  style={{ padding: '4px 10px', fontSize: '0.8rem', background: settings.startingTp === v ? '#6366f1' : '#334155' }}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Tax Pot</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem' }}>Tax payments accumulate; landing player collects the pot</div>
+            </div>
+            <button
+              className="btn-primary"
+              onClick={() => updateSettings({ taxPot: !settings.taxPot })}
+              style={{ padding: '4px 14px', fontSize: '0.85rem', background: settings.taxPot ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}
+            >
+              {settings.taxPot ? 'ON' : 'OFF'}
+            </button>
+          </div>
+        </div>
 
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button

@@ -12,7 +12,7 @@ import './PlayerDashboard.css';
 export const PlayerDashboard: React.FC = () => {
   const {
     players, currentPlayerIndex, phase, dice, boardOwnership, battleState, cardMessage, rolledDoubles, pendingGymChallenge,
-    turnOrderRolls, turnOrderPending,
+    turnOrderRolls, turnOrderPending, settings, taxPotBalance,
     rollDice, rollForTurnOrder, endTurn, captureTile, payRent, startBattle, startChampionBattle, selectBattleCreature, executeBattleRound, endBattle,
     releaseCreature, drawCard, payTax, clearCardMessage, playCpuAction, declareBankruptcy,
     payAdventureFine, loseAdventureTurn,
@@ -215,9 +215,22 @@ export const PlayerDashboard: React.FC = () => {
       }
 
       if (currentSpace.type === 'Tax') {
+        const pot = taxPotBalance[currentSpace.index] ?? 0;
+        if (settings.taxPot && pot > 0) {
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ fontSize: '0.9rem', color: '#22c55e', fontWeight: 'bold' }}>🏆 Tax Pot: {currentSpace.name}</div>
+              <div style={{ fontSize: '0.82rem', color: '#94a3b8' }}>The pot holds <strong style={{ color: '#fbbf24' }}>{pot} TP</strong>. Collect it all, then pay the tax!</div>
+              <button className="btn-primary" style={{ background: '#22c55e' }} onClick={() => payTax(currentSpace.taxAmount!)}>
+                Collect {pot} TP & Pay {currentSpace.taxAmount} TP
+              </button>
+            </div>
+          );
+        }
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div style={{ fontSize: '0.9rem', color: '#ef4444' }}>Tax: {currentSpace.name}</div>
+            {settings.taxPot && <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Pot: {pot} TP (accumulating…)</div>}
             <button className="btn-primary" onClick={() => payTax(currentSpace.taxAmount!)}>
               Pay {currentSpace.taxAmount} TP
             </button>

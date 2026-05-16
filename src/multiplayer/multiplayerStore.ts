@@ -175,7 +175,8 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => ({
   },
 
   startGame: () => {
-    getSocket().emit('lobby:start_game');
+    const { settings } = useGameStore.getState();
+    getSocket().emit('lobby:start_game', { settings });
   },
 
   leaveRoom: () => {
