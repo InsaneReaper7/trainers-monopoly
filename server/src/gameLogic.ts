@@ -95,20 +95,15 @@ export function reducerRollForTurnOrder(state: GameState): Partial<GameState> {
     return { turnOrderRolls, turnOrderPending, dice: [d1, d2], currentPlayerIndex: nextIdx, gameLogs: newLogs };
   }
 
-  const totals = state.players.map(p => { const r = turnOrderRolls[p.id]; return r ? r[0] + r[1] : 0; });
-  const maxRoll = Math.max(...totals);
-  const tiedIndices = state.players.map((_, i) => i).filter(i => totals[i] === maxRoll);
+  // All rolled — sort players highest to lowest, random tiebreak
+  const ranked = state.players
+    .map(p => ({ player: p, total: (turnOrderRolls[p.id] ?? [0, 0] as [number, number]).reduce((a: number, b: number) => a + b, 0), tiebreak: Math.random() }))
+    .sort((a, b) => b.total - a.total || b.tiebreak - a.tiebreak);
 
-  if (tiedIndices.length === 1) {
-    const winner = state.players[tiedIndices[0]];
-    const winLogs = [...newLogs, `🏆 ${winner.name} rolls highest (${maxRoll}) and goes first!`];
-    return { turnOrderRolls: {}, turnOrderPending: [], dice: [d1, d2], currentPlayerIndex: tiedIndices[0], phase: 'ROLL', gameLogs: winLogs };
-  }
-
-  const tiedNames = tiedIndices.map(i => state.players[i].name).join(' & ');
-  const newPending = tiedIndices.map(i => state.players[i].id);
-  const tieLogs = [...newLogs, `🤝 Tie between ${tiedNames} with ${maxRoll}! Re-rolling…`];
-  return { turnOrderRolls: {}, turnOrderPending: newPending, dice: [d1, d2], currentPlayerIndex: tiedIndices[0], gameLogs: tieLogs };
+  const sortedPlayers = ranked.map(r => r.player);
+  const orderLog = ranked.map((r, i) => `${i + 1}. ${r.player.name} (${r.total})`).join(' → ');
+  const finalLogs = [...newLogs, `🏆 Turn order: ${orderLog}`];
+  return { players: sortedPlayers, turnOrderRolls: {}, turnOrderPending: [], dice: [d1, d2], currentPlayerIndex: 0, phase: 'ROLL', gameLogs: finalLogs };
 }
 
 export function reducerRollDice(state: GameState): Partial<GameState> {

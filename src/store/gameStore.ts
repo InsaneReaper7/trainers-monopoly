@@ -400,35 +400,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     const newLogs = [...state.gameLogs.slice(-49), `🎲 ${player.name} rolled ${d1 + d2} (${d1}+${d2}) for turn order!`];
 
     if (turnOrderPending.length > 0) {
-      // Advance to next pending player
       const nextIdx = state.players.findIndex(p => p.id === turnOrderPending[0]);
       return { turnOrderRolls, turnOrderPending, dice: [d1, d2] as [number, number], currentPlayerIndex: nextIdx, gameLogs: newLogs };
     }
 
-    // All rolled — find highest
-    const totals = state.players.map(p => { const r = turnOrderRolls[p.id]; return r ? r[0] + r[1] : 0; });
-    const maxRoll = Math.max(...totals);
-    const tiedIndices = state.players.map((_, i) => i).filter(i => totals[i] === maxRoll);
+    // All rolled — sort players highest to lowest, random tiebreak
+    const ranked = state.players
+      .map(p => ({ player: p, total: (turnOrderRolls[p.id] ?? [0, 0] as [number, number]).reduce((a, b) => a + b, 0), tiebreak: Math.random() }))
+      .sort((a, b) => b.total - a.total || b.tiebreak - a.tiebreak);
 
-    if (tiedIndices.length === 1) {
-      const winner = state.players[tiedIndices[0]];
-      return {
-        turnOrderRolls: {}, turnOrderPending: [],
-        dice: [d1, d2] as [number, number],
-        currentPlayerIndex: tiedIndices[0],
-        phase: 'ROLL',
-        gameLogs: [...newLogs, `🏆 ${winner.name} rolls highest (${maxRoll}) and goes first!`],
-      };
-    }
-
-    // Tie — re-roll between tied players
-    const tiedNames = tiedIndices.map(i => state.players[i].name).join(' & ');
-    const newPending = tiedIndices.map(i => state.players[i].id);
+    const sortedPlayers = ranked.map(r => r.player);
+    const orderLog = ranked.map((r, i) => `${i + 1}. ${r.player.name} (${r.total})`).join(' → ');
     return {
-      turnOrderRolls: {}, turnOrderPending: newPending,
+      players: sortedPlayers,
+      turnOrderRolls: {}, turnOrderPending: [],
       dice: [d1, d2] as [number, number],
-      currentPlayerIndex: tiedIndices[0],
-      gameLogs: [...newLogs, `🤝 Tie between ${tiedNames} with ${maxRoll}! Re-rolling…`],
+      currentPlayerIndex: 0,
+      phase: 'ROLL',
+      gameLogs: [...newLogs, `🏆 Turn order: ${orderLog}`],
     };
   }),
 
