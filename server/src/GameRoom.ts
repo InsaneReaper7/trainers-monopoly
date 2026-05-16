@@ -5,6 +5,7 @@ import {
 } from './types';
 import {
   createInitialGameState,
+  reducerRollForTurnOrder,
   reducerRollDice, reducerEndTurn, reducerCaptureTile, reducerPayRent,
   reducerStartBattle, reducerStartChampionBattle, reducerSelectBattleCreature, reducerExecuteBattleRound, reducerEndBattle,
   reducerReleaseCreature, reducerDrawCard, reducerPayTax, reducerCaptureWildCreature,
@@ -145,6 +146,9 @@ export class GameRoom {
     const space = BOARD_SPACES[spaceIndex];
 
     switch (action) {
+      case 'rollForTurnOrder':
+        return reducerRollForTurnOrder(state);
+
       case 'rollDice':
         return reducerRollDice(state);
 

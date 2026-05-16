@@ -47,7 +47,7 @@ export interface TradeState {
   responderId: string;
 }
 
-export type GamePhase = 'MENU' | 'SETUP' | 'ROLL' | 'ACTION' | 'BATTLE' | 'END_TURN' | 'BANKRUPTCY' | 'ADVENTURE' | 'GAME_OVER';
+export type GamePhase = 'MENU' | 'SETUP' | 'TURN_ORDER_ROLL' | 'ROLL' | 'ACTION' | 'BATTLE' | 'END_TURN' | 'BANKRUPTCY' | 'ADVENTURE' | 'GAME_OVER';
 
 interface GameState {
   players: Player[];
@@ -63,6 +63,8 @@ interface GameState {
   rolledDoubles: boolean;
   pendingGymChallenge: boolean;
   winner: string | null;
+  turnOrderRolls: Record<string, [number, number]>;
+  turnOrderPending: string[];
 
   // Actions
   toggleStorageModal: () => void;
@@ -72,6 +74,7 @@ interface GameState {
   addPlayer: (name: string, color: string, isCpu: boolean) => void;
   addCpuPlayers: (count?: number) => void;
   startChampionBattle: () => void;
+  rollForTurnOrder: () => void;
   quitToMenu: () => void;
   startGame: () => void;
   rollDice: () => void;
@@ -159,6 +162,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   cardMessage: null,
   gameLogs: [],
   winner: null,
+  turnOrderRolls: {},
+  turnOrderPending: [],
 
   addLog: (msg: string) => set(state => ({ gameLogs: [...state.gameLogs.slice(-49), msg] })),
 
@@ -374,9 +379,58 @@ export const useGameStore = create<GameState>((set, get) => ({
     return { players: [...state.players, ...newPlayers] };
   }),
 
-  quitToMenu: () => set({ players: [], phase: 'MENU', boardOwnership: {}, currentPlayerIndex: 0, battleState: null, winner: null }),
+  quitToMenu: () => set({ players: [], phase: 'MENU', boardOwnership: {}, currentPlayerIndex: 0, battleState: null, winner: null, turnOrderRolls: {}, turnOrderPending: [] }),
 
-  startGame: () => set({ phase: 'ROLL', currentPlayerIndex: 0 }),
+  startGame: () => set(state => ({
+    phase: 'TURN_ORDER_ROLL',
+    currentPlayerIndex: 0,
+    turnOrderRolls: {},
+    turnOrderPending: state.players.map(p => p.id),
+    gameLogs: ['Everyone rolls to determine who goes first!'],
+  })),
+
+  rollForTurnOrder: () => set(state => {
+    if (mpIntercept('rollForTurnOrder', [])) return state;
+    const d1 = Math.floor(Math.random() * 6) + 1;
+    const d2 = Math.floor(Math.random() * 6) + 1;
+    const player = state.players[state.currentPlayerIndex];
+
+    const turnOrderRolls = { ...state.turnOrderRolls, [player.id]: [d1, d2] as [number, number] };
+    const turnOrderPending = state.turnOrderPending.filter(id => id !== player.id);
+    const newLogs = [...state.gameLogs.slice(-49), `🎲 ${player.name} rolled ${d1 + d2} (${d1}+${d2}) for turn order!`];
+
+    if (turnOrderPending.length > 0) {
+      // Advance to next pending player
+      const nextIdx = state.players.findIndex(p => p.id === turnOrderPending[0]);
+      return { turnOrderRolls, turnOrderPending, dice: [d1, d2] as [number, number], currentPlayerIndex: nextIdx, gameLogs: newLogs };
+    }
+
+    // All rolled — find highest
+    const totals = state.players.map(p => { const r = turnOrderRolls[p.id]; return r ? r[0] + r[1] : 0; });
+    const maxRoll = Math.max(...totals);
+    const tiedIndices = state.players.map((_, i) => i).filter(i => totals[i] === maxRoll);
+
+    if (tiedIndices.length === 1) {
+      const winner = state.players[tiedIndices[0]];
+      return {
+        turnOrderRolls: {}, turnOrderPending: [],
+        dice: [d1, d2] as [number, number],
+        currentPlayerIndex: tiedIndices[0],
+        phase: 'ROLL',
+        gameLogs: [...newLogs, `🏆 ${winner.name} rolls highest (${maxRoll}) and goes first!`],
+      };
+    }
+
+    // Tie — re-roll between tied players
+    const tiedNames = tiedIndices.map(i => state.players[i].name).join(' & ');
+    const newPending = tiedIndices.map(i => state.players[i].id);
+    return {
+      turnOrderRolls: {}, turnOrderPending: newPending,
+      dice: [d1, d2] as [number, number],
+      currentPlayerIndex: tiedIndices[0],
+      gameLogs: [...newLogs, `🤝 Tie between ${tiedNames} with ${maxRoll}! Re-rolling…`],
+    };
+  }),
 
   rollDice: () => set((state) => {
     if (mpIntercept('rollDice', [])) return state;
@@ -1387,6 +1441,11 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     const player = state.players[state.currentPlayerIndex];
     if (!player.isCpu) return;
+
+    if (state.phase === 'TURN_ORDER_ROLL') {
+      setTimeout(() => get().rollForTurnOrder(), 800);
+      return;
+    }
 
     if (state.phase === 'ROLL') {
       setTimeout(() => get().rollDice(), 1000);

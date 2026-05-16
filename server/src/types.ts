@@ -92,7 +92,7 @@ export interface TradeState {
 }
 
 export type GamePhase =
-  | 'MENU' | 'SETUP' | 'ROLL' | 'ACTION' | 'BATTLE'
+  | 'MENU' | 'SETUP' | 'TURN_ORDER_ROLL' | 'ROLL' | 'ACTION' | 'BATTLE'
   | 'END_TURN' | 'BANKRUPTCY' | 'ADVENTURE' | 'GAME_OVER';
 
 export interface GameState {
@@ -111,6 +111,8 @@ export interface GameState {
   cardMessage: string | null;
   gameLogs: string[];
   winner?: string | null;
+  turnOrderRolls: Record<string, [number, number]>;
+  turnOrderPending: string[];
 }
 
 // ─── Multiplayer / Room types ────────────────────────────────────────────────
@@ -147,7 +149,7 @@ export type ActionName =
   | 'payAdventureFine' | 'loseAdventureTurn'
   | 'sellPowerUp' | 'declareBankruptcy' | 'powerUpTile'
   | 'swapStorageCreature' | 'selectTile' | 'toggleStorageModal' | 'clearCardMessage'
-  | 'startChampionBattle';
+  | 'startChampionBattle' | 'rollForTurnOrder';
 
 export interface ServerToClientEvents {
   'room:created': (data: { roomCode: string; slotIndex: number; playerId: string; reconnectToken: string }) => void;

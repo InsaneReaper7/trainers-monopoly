@@ -62,7 +62,7 @@ export function createInitialGameState(
   return {
     players,
     currentPlayerIndex: 0,
-    phase: 'ROLL',
+    phase: 'TURN_ORDER_ROLL',
     dice: [1, 1],
     boardOwnership: {},
     battleState: null,
@@ -73,11 +73,43 @@ export function createInitialGameState(
     rolledDoubles: false,
     pendingGymChallenge: false,
     cardMessage: null,
-    gameLogs: [`Game started with ${players.length} players!`],
+    gameLogs: ['Everyone rolls to determine who goes first!'],
+    turnOrderRolls: {},
+    turnOrderPending: players.map(p => p.id),
   };
 }
 
 // ─── Reducers ────────────────────────────────────────────────────────────────
+
+export function reducerRollForTurnOrder(state: GameState): Partial<GameState> {
+  const d1 = Math.floor(Math.random() * 6) + 1;
+  const d2 = Math.floor(Math.random() * 6) + 1;
+  const player = state.players[state.currentPlayerIndex];
+
+  const turnOrderRolls = { ...state.turnOrderRolls, [player.id]: [d1, d2] as [number, number] };
+  const turnOrderPending = state.turnOrderPending.filter(id => id !== player.id);
+  const newLogs = log(state, `🎲 ${player.name} rolled ${d1 + d2} (${d1}+${d2}) for turn order!`);
+
+  if (turnOrderPending.length > 0) {
+    const nextIdx = state.players.findIndex(p => p.id === turnOrderPending[0]);
+    return { turnOrderRolls, turnOrderPending, dice: [d1, d2], currentPlayerIndex: nextIdx, gameLogs: newLogs };
+  }
+
+  const totals = state.players.map(p => { const r = turnOrderRolls[p.id]; return r ? r[0] + r[1] : 0; });
+  const maxRoll = Math.max(...totals);
+  const tiedIndices = state.players.map((_, i) => i).filter(i => totals[i] === maxRoll);
+
+  if (tiedIndices.length === 1) {
+    const winner = state.players[tiedIndices[0]];
+    const winLogs = [...newLogs, `🏆 ${winner.name} rolls highest (${maxRoll}) and goes first!`];
+    return { turnOrderRolls: {}, turnOrderPending: [], dice: [d1, d2], currentPlayerIndex: tiedIndices[0], phase: 'ROLL', gameLogs: winLogs };
+  }
+
+  const tiedNames = tiedIndices.map(i => state.players[i].name).join(' & ');
+  const newPending = tiedIndices.map(i => state.players[i].id);
+  const tieLogs = [...newLogs, `🤝 Tie between ${tiedNames} with ${maxRoll}! Re-rolling…`];
+  return { turnOrderRolls: {}, turnOrderPending: newPending, dice: [d1, d2], currentPlayerIndex: tiedIndices[0], gameLogs: tieLogs };
+}
 
 export function reducerRollDice(state: GameState): Partial<GameState> {
   const d1 = Math.floor(Math.random() * 6) + 1;

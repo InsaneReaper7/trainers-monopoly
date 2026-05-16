@@ -12,7 +12,8 @@ import './PlayerDashboard.css';
 export const PlayerDashboard: React.FC = () => {
   const {
     players, currentPlayerIndex, phase, dice, boardOwnership, battleState, cardMessage, rolledDoubles, pendingGymChallenge,
-    rollDice, endTurn, captureTile, payRent, startBattle, startChampionBattle, selectBattleCreature, executeBattleRound, endBattle,
+    turnOrderRolls, turnOrderPending,
+    rollDice, rollForTurnOrder, endTurn, captureTile, payRent, startBattle, startChampionBattle, selectBattleCreature, executeBattleRound, endBattle,
     releaseCreature, drawCard, payTax, clearCardMessage, playCpuAction, declareBankruptcy,
     payAdventureFine, loseAdventureTurn,
   } = useGameStore();
@@ -48,6 +49,41 @@ export const PlayerDashboard: React.FC = () => {
 
     if (!isOnline && currentPlayer.isCpu) {
       return <div style={{ color: '#fbbf24', fontStyle: 'italic' }}>CPU is thinking...</div>;
+    }
+
+    if (phase === 'TURN_ORDER_ROLL') {
+      const myRoll = turnOrderRolls[currentPlayer.id];
+      const alreadyRolled = !!myRoll;
+      const isMyTurnToRoll = turnOrderPending[0] === currentPlayer.id;
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <div style={{ color: '#fbbf24', fontWeight: 'bold', fontSize: '1rem' }}>Rolling for Turn Order</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '0.5rem' }}>
+            {players.map(p => {
+              const roll = turnOrderRolls[p.id];
+              return (
+                <div key={p.id} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', fontSize: '0.82rem' }}>
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: p.color, flexShrink: 0 }} />
+                  <span style={{ color: p.id === currentPlayer.id ? '#f1f5f9' : '#94a3b8', flex: 1 }}>{p.name}</span>
+                  <span style={{ color: roll ? '#fbbf24' : '#475569', fontWeight: roll ? 700 : 400 }}>
+                    {roll ? `${roll[0] + roll[1]} (${roll[0]}+${roll[1]})` : turnOrderPending.includes(p.id) ? '—' : '...'}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          {isMyTurnToRoll && !alreadyRolled && (
+            <button className="btn-primary" onClick={rollForTurnOrder} style={{ width: '100%' }}>
+              Roll for Turn Order!
+            </button>
+          )}
+          {!isMyTurnToRoll && (
+            <div style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '0.85rem' }}>
+              Waiting for {players.find(p => p.id === turnOrderPending[0])?.name ?? '...'}…
+            </div>
+          )}
+        </div>
+      );
     }
 
     if (phase === 'ADVENTURE') {
