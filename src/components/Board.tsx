@@ -52,7 +52,7 @@ export const Board: React.FC = () => {
           return (
             <div 
               key={space.index} 
-              className={`space ${space.type.toLowerCase()}${space.type === 'Creature' ? ' clickable-tile' : ''}`}
+              className={`space ${space.type.toLowerCase()}${space.type === 'Creature' ? ' clickable-tile' : ''}${ownership?.powerUpTier >= 5 ? ' hotel-maxed' : ''}`}
               style={{ gridRow, gridColumn }}
               onClick={() => space.type === 'Creature' ? selectTile(space.index) : undefined}
             >
@@ -66,8 +66,8 @@ export const Board: React.FC = () => {
                 <span className="space-name">{space.name}</span>
                 {owner && <span className="owner-badge" style={{ backgroundColor: owner.color }}>{owner.name}</span>}
                 {ownership && ownership.powerUpTier > 0 && (
-                  <span className="power-pips">
-                    {'⚡'.repeat(ownership.powerUpTier)}
+                  <span className={`power-pips${ownership.powerUpTier >= 5 ? ' hotel-icon' : ''}`}>
+                    {ownership.powerUpTier >= 5 ? '🏨' : '⚡'.repeat(ownership.powerUpTier)}
                   </span>
                 )}
               </div>

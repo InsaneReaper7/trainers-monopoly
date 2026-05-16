@@ -177,7 +177,7 @@ export function reducerPowerUpTile(state: GameState, spaceIndex: number): Partia
   const ownsAll = groupSpaces.every(s => boardOwnership[s.index]?.ownerId === player.id);
   if (!ownsAll) return {};
   const minTierInGroup = Math.min(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0));
-  if (ownership.powerUpTier >= minTierInGroup + 1 || ownership.powerUpTier >= 4) return {};
+  if (ownership.powerUpTier >= minTierInGroup + 1 || ownership.powerUpTier >= 5) return {};
   const cost = (GROUP_HOUSE_COST[space.groupId] ?? 100) * groupSpaces.length;
   if (player.tp < cost) return {};
   player.tp -= cost;
@@ -664,21 +664,23 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
   let movedToGym = false;
   const rand = Math.random();
 
+  const creatureSpaces = BOARD_SPACES.filter(s => s.type === 'Creature');
+
   if (deckType === 'Scout') {
-    if (rand < 1 / 8) { msg = 'Found a hidden item! Gain 100 TP.'; player.tp += 100; }
-    else if (rand < 2 / 8) { msg = 'Scouted a shortcut. Advance 3 spaces.'; player.position = (player.position + 3) % 40; }
-    else if (rand < 3 / 8) { msg = 'Ambushed by wild creatures! Lose 50 TP.'; player.tp -= 50; }
-    else if (rand < 4 / 8) {
+    if (rand < 1 / 11) { msg = 'Found a hidden item! Gain 100 TP.'; player.tp += 100; }
+    else if (rand < 2 / 11) { msg = 'Scouted a shortcut. Advance 3 spaces.'; player.position = (player.position + 3) % 40; }
+    else if (rand < 3 / 11) { msg = 'Ambushed by wild creatures! Lose 50 TP.'; player.tp -= 50; }
+    else if (rand < 4 / 11) {
       msg = 'Found a trail back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
       const h = healAndExpParty(player, 30); player.position = h.position; player.tp = h.tp; player.party = h.party;
-    } else if (rand < 5 / 8) {
+    } else if (rand < 5 / 11) {
       msg = 'Spotted a gym nearby! Challenge the nearest gym.'; moveToGym(nearestGym); movedToGym = true;
-    } else if (rand < 6 / 8) {
+    } else if (rand < 6 / 11) {
       msg = 'Received orders to report to Gym 1! Challenge the gym leader.'; moveToGym(5); movedToGym = true;
-    } else if (rand < 7 / 8) {
+    } else if (rand < 7 / 11) {
       msg = 'Lost in the wilderness! Go directly to Lost in Adventure — do not collect TP.';
       player.position = 30; player.inAdventure = true;
-    } else {
+    } else if (rand < 8 / 11) {
       const perPlayer = 50;
       let collected = 0;
       state.players.forEach((p, idx) => {
@@ -689,21 +691,44 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
       });
       player.tp += collected;
       msg = `Scout Network! Collected ${perPlayer} TP from each rival trainer (+${collected} TP total).`;
+    } else if (rand < 9 / 11) {
+      msg = 'Found a little TP on the trail! +50 TP.'; player.tp += 50;
+    } else if (rand < 10 / 11) {
+      const dest = Math.floor(Math.random() * 40);
+      const passedGo = dest < player.position;
+      if (passedGo) player.tp += 200;
+      player.position = dest;
+      msg = `Your scout map leads you to space ${dest}!${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+    } else {
+      const unownedSpaces = creatureSpaces.filter(s => !state.boardOwnership[s.index]);
+      if (unownedSpaces.length > 0) {
+        const dest = unownedSpaces[Math.floor(Math.random() * unownedSpaces.length)];
+        const passedGo = dest.index < player.position;
+        if (passedGo) player.tp += 200;
+        player.position = dest.index;
+        msg = `Scouted an unclaimed territory — head to ${dest.name}!${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+      } else {
+        const dest = Math.floor(Math.random() * 40);
+        const passedGo = dest < player.position;
+        if (passedGo) player.tp += 200;
+        player.position = dest;
+        msg = `All territories claimed! Scout redirects you to space ${dest}.${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+      }
     }
   } else {
-    if (rand < 1 / 7) { msg = 'Read up on battling techniques. Gain 200 TP.'; player.tp += 200; }
-    else if (rand < 2 / 7) { msg = 'Bought new supplies. Pay 100 TP.'; player.tp -= 100; }
-    else if (rand < 3 / 7) {
+    if (rand < 1 / 10) { msg = 'Read up on battling techniques. Gain 200 TP.'; player.tp += 200; }
+    else if (rand < 2 / 10) { msg = 'Bought new supplies. Pay 100 TP.'; player.tp -= 100; }
+    else if (rand < 3 / 10) {
       msg = 'Your journal led you back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
       const h = healAndExpParty(player, 30); player.position = h.position; player.tp = h.tp; player.party = h.party;
-    } else if (rand < 4 / 7) {
+    } else if (rand < 4 / 10) {
       msg = 'Your notes pointed to a nearby gym! Challenge the gym leader.'; moveToGym(nearestGym); movedToGym = true;
-    } else if (rand < 5 / 7) {
+    } else if (rand < 5 / 10) {
       msg = 'Your journal says to start from the top — head to Gym 1! Challenge the gym leader.'; moveToGym(5); movedToGym = true;
-    } else if (rand < 6 / 7) {
+    } else if (rand < 6 / 10) {
       msg = 'Got lost reading old notes! Go directly to Lost in Adventure — do not collect TP.';
       player.position = 30; player.inAdventure = true;
-    } else {
+    } else if (rand < 7 / 10) {
       const perPlayer = 50;
       let paid = 0;
       state.players.forEach((p, idx) => {
@@ -714,6 +739,30 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
       });
       player.tp -= paid;
       msg = `Trainer Convention! Pay ${perPlayer} TP to each rival trainer (-${paid} TP total).`;
+    } else if (rand < 8 / 10) {
+      msg = 'Won a regional contest! +300 TP.'; player.tp += 300;
+    } else if (rand < 9 / 10) {
+      let repairCost = 0;
+      Object.entries(state.boardOwnership).forEach(([, own]) => {
+        if (own.ownerId === player.id && own.powerUpTier > 0) {
+          repairCost += own.powerUpTier >= 5 ? 100 : own.powerUpTier * 25;
+        }
+      });
+      player.tp -= repairCost;
+      msg = repairCost === 0
+        ? 'Street Repairs — no upgrades owned, no charge!'
+        : `Street Repairs! Pay ${repairCost} TP (25 TP/house tier, 100 TP/hotel).`;
+    } else {
+      const ownedSpaces = creatureSpaces.filter(s => state.boardOwnership[s.index]?.ownerId === player.id);
+      if (ownedSpaces.length > 0) {
+        const dest = ownedSpaces[Math.floor(Math.random() * ownedSpaces.length)];
+        const passedGo = dest.index < player.position;
+        if (passedGo) player.tp += 200;
+        player.position = dest.index;
+        msg = `Journeyed back to your own territory — ${dest.name}!${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+      } else {
+        msg = 'Wanted to visit your own territory, but you own none yet. Stay put.';
+      }
     }
   }
 

@@ -5,7 +5,7 @@ import { CREATURES } from '../data/creatures';
 import './TileInfoModal.css';
 
 const POWER_COST = (groupId: string, groupSize: number) => (GROUP_HOUSE_COST[groupId] ?? 100) * groupSize;
-const TIER_STARS = ['○', '★', '★★', '★★★', '★★★★'];
+const TIER_STARS = ['○', '★', '★★', '★★★', '★★★★', '🏨'];
 
 export const TileInfoModal: React.FC = () => {
   const { selectedTileIndex, selectTile, boardOwnership, players, currentPlayerIndex, powerUpTile, sellPowerUp, phase } = useGameStore();
@@ -30,7 +30,7 @@ export const TileInfoModal: React.FC = () => {
   const minGroupTier = ownsAll
     ? Math.min(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0))
     : 0;
-  const canPowerUp = isOwner && ownsAll && powerUpTier < 4 && powerUpTier <= minGroupTier;
+  const canPowerUp = isOwner && ownsAll && powerUpTier < 5 && powerUpTier <= minGroupTier;
   const nextCost = POWER_COST(space.groupId!, groupSpaces.length);
   const canAfford = currentPlayer.tp >= nextCost;
 
@@ -112,9 +112,9 @@ export const TileInfoModal: React.FC = () => {
         </div>
         {/* Rent schedule */}
         <div style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
-          {[0,1,2,3,4].map(t => (
-            <span key={t} style={{ background: t === powerUpTier ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: t === powerUpTier ? '#fbbf24' : '#9ca3af' }}>
-              {t === 0 ? 'Base' : `T${t}`}: {species.baseRent + rentPerTier * t} TP
+          {[0,1,2,3,4,5].map(t => (
+            <span key={t} style={{ background: t === powerUpTier ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: t === powerUpTier ? '#fbbf24' : t === 5 ? '#a855f7' : '#9ca3af' }}>
+              {t === 0 ? 'Base' : t === 5 ? '🏨' : `T${t}`}: {species.baseRent + rentPerTier * t} TP
             </span>
           ))}
         </div>
@@ -152,11 +152,11 @@ export const TileInfoModal: React.FC = () => {
         {isOwner && ownsAll && isPlayerTurn && (
           <div className="tile-powerup-panel">
             <div className="powerup-tiers">
-              {[0,1,2,3,4].map(t => (
-                <div key={t} className={`powerup-pip ${t < powerUpTier ? 'filled' : t === powerUpTier ? 'current' : 'empty'}`} />
+              {[0,1,2,3,4,5].map(t => (
+                <div key={t} className={`powerup-pip ${t < powerUpTier ? 'filled' : t === powerUpTier ? 'current' : 'empty'}${t === 5 ? ' hotel-pip' : ''}`} />
               ))}
             </div>
-            {powerUpTier < 4 && phase !== 'BANKRUPTCY' ? (
+            {powerUpTier < 5 && phase !== 'BANKRUPTCY' ? (
               <div className="powerup-info">
                 <div className="powerup-cost-row">
                   <span>Cost: <strong>{nextCost} TP</strong></span>
@@ -170,14 +170,14 @@ export const TileInfoModal: React.FC = () => {
                   disabled={!canPowerUp || !canAfford}
                   onClick={() => { powerUpTile(selectedTileIndex); }}
                 >
-                  {!canAfford ? `Need ${nextCost} TP` : `⚡ Power Up (Tier ${powerUpTier + 1})`}
+                  {!canAfford ? `Need ${nextCost} TP` : powerUpTier === 4 ? `🏨 Build Hotel` : `⚡ Power Up (Tier ${powerUpTier + 1})`}
                 </button>
                 {powerUpTier > 0 && !canPowerUp && (
                   <div className="powerup-warning">Upgrade your other tiles to Tier {powerUpTier} first!</div>
                 )}
               </div>
-            ) : powerUpTier >= 4 && phase !== 'BANKRUPTCY' ? (
-              <div className="powerup-maxed">⚡ MAXED OUT — Tier 4</div>
+            ) : powerUpTier >= 5 && phase !== 'BANKRUPTCY' ? (
+              <div className="powerup-maxed">🏨 HOTEL — MAXED OUT</div>
             ) : null}
             {canSell && (
               <button

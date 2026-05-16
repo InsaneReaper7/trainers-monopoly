@@ -184,7 +184,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const minTierInGroup = Math.min(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0));
     if (ownership.powerUpTier >= minTierInGroup + 1) return state;
 
-    if (ownership.powerUpTier >= 4) return state;
+    if (ownership.powerUpTier >= 5) return state;
 
     // Cost: GROUP_HOUSE_COST per tile in the group (flat per tier)
     const cost = (GROUP_HOUSE_COST[space.groupId] ?? 100) * groupSpaces.length;
@@ -217,8 +217,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     boardOwnership[spaceIndex] = { ...ownership, powerUpTier: ownership.powerUpTier + 1 };
     players[state.currentPlayerIndex] = player;
 
-    const newRent = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId] ?? 50) * boardOwnership[spaceIndex].powerUpTier;
-    const newLogs = [...state.gameLogs.slice(-49), `⚡ ${player.name} powered up ${species.baseForm.name} to Tier ${boardOwnership[spaceIndex].powerUpTier}! New rent: ${newRent} TP`];
+    const newTier = boardOwnership[spaceIndex].powerUpTier;
+    const newRent = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId] ?? 50) * newTier;
+    const tierLabel = newTier >= 5 ? '🏨 Hotel' : `Tier ${newTier}`;
+    const newLogs = [...state.gameLogs.slice(-49), `⚡ ${player.name} powered up ${species.baseForm.name} to ${tierLabel}! New rent: ${newRent} TP`];
 
     return { players, boardOwnership, gameLogs: newLogs };
   }),
@@ -964,35 +966,37 @@ export const useGameStore = create<GameState>((set, get) => ({
     let movedToGym = false;
     const rand = Math.random();
 
+    const creatureSpaces = BOARD_SPACES.filter(s => s.type === 'Creature');
+
     if (deckType === 'Scout') {
-      if (rand < 1 / 8) {
+      if (rand < 1 / 11) {
         msg = 'Found a hidden item! Gain 100 TP.';
         player.tp += 100;
-      } else if (rand < 2 / 8) {
+      } else if (rand < 2 / 11) {
         msg = 'Scouted a shortcut. Advance 3 spaces.';
         player.position = (player.position + 3) % 40;
-      } else if (rand < 3 / 8) {
+      } else if (rand < 3 / 11) {
         msg = 'Ambushed by wild creatures! Lose 50 TP.';
         player.tp -= 50;
-      } else if (rand < 4 / 8) {
+      } else if (rand < 4 / 11) {
         msg = 'Found a trail back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
         const healed = healAndExpParty(player, 30);
         player.position = healed.position;
         player.tp = healed.tp;
         player.party = healed.party;
-      } else if (rand < 5 / 8) {
+      } else if (rand < 5 / 11) {
         msg = 'Spotted a gym nearby! Challenge the nearest gym.';
         moveToGym(nearestGym);
         movedToGym = true;
-      } else if (rand < 6 / 8) {
+      } else if (rand < 6 / 11) {
         msg = 'Received orders to report to Gym 1! Challenge the gym leader.';
         moveToGym(5);
         movedToGym = true;
-      } else if (rand < 7 / 8) {
+      } else if (rand < 7 / 11) {
         msg = 'Lost in the wilderness! Go directly to Lost in Adventure — do not collect TP.';
         player.position = 30;
         player.inAdventure = true;
-      } else {
+      } else if (rand < 8 / 11) {
         // Collect 50 TP from each other player
         const perPlayer = 50;
         let collected = 0;
@@ -1004,33 +1008,59 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
         player.tp += collected;
         msg = `Scout Network! Collected ${perPlayer} TP from each rival trainer (+${collected} TP total).`;
+      } else if (rand < 9 / 11) {
+        msg = 'Found a little TP on the trail! +50 TP.';
+        player.tp += 50;
+      } else if (rand < 10 / 11) {
+        // Move to a random tile on the board
+        const dest = Math.floor(Math.random() * 40);
+        const passedGo = dest < player.position;
+        if (passedGo) player.tp += 200;
+        player.position = dest;
+        msg = `Your scout map leads you to space ${dest}!${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+      } else {
+        // Move to a random unowned creature tile; if all owned, random tile
+        const unownedSpaces = creatureSpaces.filter(s => !state.boardOwnership[s.index]);
+        if (unownedSpaces.length > 0) {
+          const dest = unownedSpaces[Math.floor(Math.random() * unownedSpaces.length)];
+          const passedGo = dest.index < player.position;
+          if (passedGo) player.tp += 200;
+          player.position = dest.index;
+          msg = `Scouted an unclaimed territory — head to ${dest.name}!${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+        } else {
+          const dest = Math.floor(Math.random() * 40);
+          const passedGo = dest < player.position;
+          if (passedGo) player.tp += 200;
+          player.position = dest;
+          msg = `All territories claimed! Scout redirects you to space ${dest}.${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+        }
       }
     } else {
-      if (rand < 1 / 7) {
+      if (rand < 1 / 10) {
         msg = 'Read up on battling techniques. Gain 200 TP.';
         player.tp += 200;
-      } else if (rand < 2 / 7) {
+      } else if (rand < 2 / 10) {
         msg = 'Bought new supplies. Pay 100 TP.';
         player.tp -= 100;
-      } else if (rand < 3 / 7) {
+      } else if (rand < 3 / 10) {
         msg = 'Your journal led you back to the Healing Center! +300 TP, party healed & gained 30 EXP.';
         const healed = healAndExpParty(player, 30);
         player.position = healed.position;
         player.tp = healed.tp;
         player.party = healed.party;
-      } else if (rand < 4 / 7) {
+      } else if (rand < 4 / 10) {
         msg = 'Your notes pointed to a nearby gym! Challenge the gym leader.';
         moveToGym(nearestGym);
         movedToGym = true;
-      } else if (rand < 5 / 7) {
+      } else if (rand < 5 / 10) {
         msg = 'Your journal says to start from the top — head to Gym 1! Challenge the gym leader.';
         moveToGym(5);
         movedToGym = true;
-      } else if (rand < 6 / 7) {
+      } else if (rand < 6 / 10) {
         msg = 'Got lost reading old notes! Go directly to Lost in Adventure — do not collect TP.';
         player.position = 30;
         player.inAdventure = true;
-      } else {
+      } else if (rand < 7 / 10) {
         // Pay 50 TP to each other player
         const perPlayer = 50;
         let paid = 0;
@@ -1042,6 +1072,33 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
         player.tp -= paid;
         msg = `Trainer Convention! Pay ${perPlayer} TP to each rival trainer (-${paid} TP total).`;
+      } else if (rand < 8 / 10) {
+        msg = 'Won a regional contest! +300 TP.';
+        player.tp += 300;
+      } else if (rand < 9 / 10) {
+        // Street Repairs: pay 25 TP per house tier, 100 TP per hotel
+        let repairCost = 0;
+        Object.entries(state.boardOwnership).forEach(([, own]) => {
+          if (own.ownerId === player.id && own.powerUpTier > 0) {
+            repairCost += own.powerUpTier >= 5 ? 100 : own.powerUpTier * 25;
+          }
+        });
+        player.tp -= repairCost;
+        msg = repairCost === 0
+          ? 'Street Repairs — no upgrades owned, no charge!'
+          : `Street Repairs! Pay ${repairCost} TP (25 TP/house tier, 100 TP/hotel).`;
+      } else {
+        // Move to one of your own tiles; if none, no effect
+        const ownedSpaces = creatureSpaces.filter(s => state.boardOwnership[s.index]?.ownerId === player.id);
+        if (ownedSpaces.length > 0) {
+          const dest = ownedSpaces[Math.floor(Math.random() * ownedSpaces.length)];
+          const passedGo = dest.index < player.position;
+          if (passedGo) player.tp += 200;
+          player.position = dest.index;
+          msg = `Journeyed back to your own territory — ${dest.name}!${passedGo ? ' Passed Go — collect 200 TP.' : ''}`;
+        } else {
+          msg = 'Wanted to visit your own territory, but you own none yet. Stay put.';
+        }
       }
     }
 
@@ -1472,7 +1529,7 @@ export const useGameStore = create<GameState>((set, get) => ({
           if (space.type !== 'Creature' || !space.groupId) return false;
           const ownership = boardOwnership[space.index];
           if (!ownership || ownership.ownerId !== p.id) return false;
-          if (ownership.powerUpTier >= 4) return false;
+          if (ownership.powerUpTier >= 5) return false;
 
           // Must own all tiles in group
           const groupSpaces = BOARD_SPACES.filter(s => s.groupId === space.groupId && s.type === 'Creature');
