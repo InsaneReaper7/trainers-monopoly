@@ -690,6 +690,7 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
   let msg = '';
   let movedToGym = false;
   const rand = Math.random();
+  const originalPosition = player.position;
 
   const creatureSpaces = BOARD_SPACES.filter(s => s.type === 'Creature');
 
@@ -801,7 +802,8 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
   let landingPhase: GamePhase = 'END_TURN';
   let landingWildEncounter: { speciesId: string } | null = null;
 
-  if (!movedToGym && !player.inAdventure) {
+  const playerMoved = player.position !== originalPosition;
+  if (!movedToGym && !player.inAdventure && playerMoved) {
     if (landedSpace.type === 'Creature' || landedSpace.type === 'Event' || landedSpace.type === 'Tax') {
       landingPhase = 'ACTION';
     } else if (landedSpace.type === 'Wild') {
