@@ -24,6 +24,7 @@ export const PlayerDashboard: React.FC = () => {
 
   const [selectedCreature, setSelectedCreature] = useState<ActiveCreature | null>(null);
 
+  const playerPosition = players[currentPlayerIndex]?.position;
   useEffect(() => {
     // In online mode the server drives CPU turns — don't run playCpuAction locally
     if (isOnline) return;
@@ -31,7 +32,7 @@ export const PlayerDashboard: React.FC = () => {
     if (currentPlayer?.isCpu) {
       playCpuAction();
     }
-  }, [phase, currentPlayerIndex, battleState, playCpuAction, isOnline]);
+  }, [phase, currentPlayerIndex, playerPosition, battleState, playCpuAction, isOnline]);
 
   if (players.length === 0) return null;
 
