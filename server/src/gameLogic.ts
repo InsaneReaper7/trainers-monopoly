@@ -720,7 +720,24 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
   players[state.currentPlayerIndex] = player;
   const newLogs = log(state, `🃏 ${player.name} drew a card: ${msg}`);
   if (player.tp < 0) return { players, cardMessage: msg, phase: 'BANKRUPTCY', gameLogs: newLogs };
-  return { players, cardMessage: msg, phase: 'END_TURN', pendingGymChallenge: movedToGym, gameLogs: newLogs };
+
+  const landedSpace = BOARD_SPACES[player.position];
+  let landingPhase: GamePhase = 'END_TURN';
+  let landingWildEncounter: { speciesId: string } | null = null;
+
+  if (!movedToGym && !player.inAdventure) {
+    if (landedSpace.type === 'Creature' || landedSpace.type === 'Event' || landedSpace.type === 'Tax') {
+      landingPhase = 'ACTION';
+    } else if (landedSpace.type === 'Wild') {
+      landingPhase = 'ACTION';
+      const wildSpecies = ['aerozor', 'toxeon', 'steelodon', 'mythicor'];
+      landingWildEncounter = { speciesId: wildSpecies[Math.floor(Math.random() * wildSpecies.length)] };
+    } else if (landedSpace.type === 'Gym') {
+      landingPhase = 'ACTION';
+    }
+  }
+
+  return { players, cardMessage: msg, phase: landingPhase, pendingGymChallenge: movedToGym, wildEncounter: landingWildEncounter, gameLogs: newLogs };
 }
 
 export function reducerPayTax(state: GameState, amount: number): Partial<GameState> {

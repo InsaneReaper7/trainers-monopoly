@@ -1050,7 +1050,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (player.tp < 0) {
       return { players, cardMessage: msg, phase: 'BANKRUPTCY', gameLogs: newLogs };
     }
-    return { players, cardMessage: msg, phase: 'END_TURN', pendingGymChallenge: movedToGym, gameLogs: newLogs };
+
+    // Determine the correct phase for where the player landed
+    const landedSpace = BOARD_SPACES[player.position];
+    let landingPhase: GamePhase = 'END_TURN';
+    let landingWildEncounter: { speciesId: string } | null = null;
+
+    if (!movedToGym && !player.inAdventure) {
+      if (landedSpace.type === 'Creature' || landedSpace.type === 'Event' || landedSpace.type === 'Tax') {
+        landingPhase = 'ACTION';
+      } else if (landedSpace.type === 'Wild') {
+        landingPhase = 'ACTION';
+        const wildSpecies = ['aerozor', 'toxeon', 'steelodon', 'mythicor'];
+        landingWildEncounter = { speciesId: wildSpecies[Math.floor(Math.random() * wildSpecies.length)] };
+      } else if (landedSpace.type === 'Gym') {
+        landingPhase = 'ACTION';
+      }
+      // Start / Corner → END_TURN (no action needed)
+    }
+
+    return { players, cardMessage: msg, phase: landingPhase, pendingGymChallenge: movedToGym, wildEncounter: landingWildEncounter, gameLogs: newLogs };
   }),
 
   payTax: (amount: number) => set((state) => {
