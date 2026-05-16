@@ -505,9 +505,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       : '';
     const doublesNote = isDoubles ? ' 🎲 DOUBLES — roll again!' : '';
     const logMsg = `${player.name} rolled ${totalRoll} (${d1}+${d2}) and moved to ${space.name}${suffix}${doublesNote}`;
-    const newLogs = [...state.gameLogs.slice(-49), logMsg];
+    let newLogs = [...state.gameLogs.slice(-49), logMsg];
 
-    return { dice: [d1, d2], players, phase: 'ACTION', wildEncounter, rolledDoubles: isDoubles, gameLogs: newLogs };
+    // Tax Pot: collect when landing on "Just Adventuring" (index 10)
+    let taxPotBalance = state.taxPotBalance;
+    if (state.settings.taxPot && newPos === 10) {
+      const pot = taxPotBalance[10] ?? 0;
+      if (pot > 0) {
+        player.tp += pot;
+        players[state.currentPlayerIndex] = player;
+        taxPotBalance = { ...taxPotBalance, [10]: 0 };
+        newLogs = [...newLogs.slice(-49), `🏆 ${player.name} landed on Just Adventuring and collected ${pot} TP from the tax pot!`];
+      }
+    }
+
+    return { dice: [d1, d2], players, phase: 'ACTION', wildEncounter, rolledDoubles: isDoubles, gameLogs: newLogs, taxPotBalance };
   }),
 
   endTurn: () => set((state) => {
@@ -1196,28 +1208,18 @@ export const useGameStore = create<GameState>((set, get) => ({
     if (mpIntercept('payTax', [amount])) return state;
     const players = [...state.players];
     const player = { ...players[state.currentPlayerIndex] };
-    const spaceIndex = player.position;
 
+    const TAX_POT_SPACE = 10; // "Just Adventuring" corner
     if (state.settings.taxPot) {
-      const currentPot = state.taxPotBalance[spaceIndex] ?? 0;
-      if (currentPot > 0) {
-        // Collect the pot first, then pay the tax
-        player.tp += currentPot - amount;
-        players[state.currentPlayerIndex] = player;
-        const newLogs = [...state.gameLogs.slice(-49), `🏆 ${player.name} collected ${currentPot} TP from the pot and paid ${amount} TP tax! Net: +${currentPot - amount} TP`];
-        if (player.tp < 0) {
-          return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'BANKRUPTCY', gameLogs: newLogs };
-        }
-        return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'END_TURN', gameLogs: newLogs };
-      }
-      // Pot is empty — just add this payment to it
+      const currentPot = state.taxPotBalance[TAX_POT_SPACE] ?? 0;
       player.tp -= amount;
       players[state.currentPlayerIndex] = player;
-      const newLogs = [...state.gameLogs.slice(-49), `💰 ${player.name} paid ${amount} TP — pot now holds ${amount} TP!`];
+      const newPot = currentPot + amount;
+      const newLogs = [...state.gameLogs.slice(-49), `💰 ${player.name} paid ${amount} TP tax — Just Adventuring pot grows to ${newPot} TP!`];
       if (player.tp < 0) {
-        return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'BANKRUPTCY', gameLogs: newLogs };
+        return { players, taxPotBalance: { ...state.taxPotBalance, [TAX_POT_SPACE]: newPot }, phase: 'BANKRUPTCY', gameLogs: newLogs };
       }
-      return { players, taxPotBalance: { ...state.taxPotBalance, [spaceIndex]: amount }, phase: 'END_TURN', gameLogs: newLogs };
+      return { players, taxPotBalance: { ...state.taxPotBalance, [TAX_POT_SPACE]: newPot }, phase: 'END_TURN', gameLogs: newLogs };
     }
 
     player.tp -= amount;

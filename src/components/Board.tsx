@@ -70,8 +70,8 @@ export const Board: React.FC = () => {
                     {ownership.powerUpTier >= 5 ? '🏨' : '⚡'.repeat(ownership.powerUpTier)}
                   </span>
                 )}
-                {settings.taxPot && space.type === 'Tax' && (taxPotBalance[space.index] ?? 0) > 0 && (
-                  <span className="tax-pot-badge">💰{taxPotBalance[space.index]}</span>
+                {settings.taxPot && space.index === 10 && (taxPotBalance[10] ?? 0) > 0 && (
+                  <span className="tax-pot-badge">💰{taxPotBalance[10]}</span>
                 )}
               </div>
               
