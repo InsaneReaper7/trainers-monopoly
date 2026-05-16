@@ -219,7 +219,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const newTier = boardOwnership[spaceIndex].powerUpTier;
     const newRent = species.baseRent + (GROUP_RENT_PER_TIER[space.groupId] ?? 50) * newTier;
-    const tierLabel = newTier >= 5 ? '🏨 Hotel' : `Tier ${newTier}`;
+    const tierLabel = newTier >= 5 ? '🏨 Sanctum' : `Tier ${newTier}`;
     const newLogs = [...state.gameLogs.slice(-49), `⚡ ${player.name} powered up ${species.baseForm.name} to ${tierLabel}! New rent: ${newRent} TP`];
 
     return { players, boardOwnership, gameLogs: newLogs };
@@ -1076,7 +1076,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         msg = 'Won a regional contest! +300 TP.';
         player.tp += 300;
       } else if (rand < 9 / 10) {
-        // Street Repairs: pay 25 TP per house tier, 100 TP per hotel
+        // Street Repairs: pay 25 TP per power-up tier, 100 TP per Sanctum
         let repairCost = 0;
         Object.entries(state.boardOwnership).forEach(([, own]) => {
           if (own.ownerId === player.id && own.powerUpTier > 0) {
@@ -1085,8 +1085,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         });
         player.tp -= repairCost;
         msg = repairCost === 0
-          ? 'Street Repairs — no upgrades owned, no charge!'
-          : `Street Repairs! Pay ${repairCost} TP (25 TP/house tier, 100 TP/hotel).`;
+          ? 'Street Repairs — no power-ups owned, no charge!'
+          : `Street Repairs! Pay ${repairCost} TP (25 TP/power-up tier, 100 TP/Sanctum).`;
       } else {
         // Move to one of your own tiles; if none, no effect
         const ownedSpaces = creatureSpaces.filter(s => state.boardOwnership[s.index]?.ownerId === player.id);

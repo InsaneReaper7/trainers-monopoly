@@ -114,7 +114,7 @@ export const TileInfoModal: React.FC = () => {
         <div style={{ fontSize: '0.72rem', color: '#9ca3af', display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
           {[0,1,2,3,4,5].map(t => (
             <span key={t} style={{ background: t === powerUpTier ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: t === powerUpTier ? '#fbbf24' : t === 5 ? '#a855f7' : '#9ca3af' }}>
-              {t === 0 ? 'Base' : t === 5 ? '🏨' : `T${t}`}: {species.baseRent + rentPerTier * t} TP
+              {t === 0 ? 'Base' : t === 5 ? '🏨 Sanctum' : `T${t}`}: {species.baseRent + rentPerTier * t} TP
             </span>
           ))}
         </div>
@@ -153,7 +153,7 @@ export const TileInfoModal: React.FC = () => {
           <div className="tile-powerup-panel">
             <div className="powerup-tiers">
               {[0,1,2,3,4,5].map(t => (
-                <div key={t} className={`powerup-pip ${t < powerUpTier ? 'filled' : t === powerUpTier ? 'current' : 'empty'}${t === 5 ? ' hotel-pip' : ''}`} />
+                <div key={t} className={`powerup-pip ${t < powerUpTier ? 'filled' : t === powerUpTier ? 'current' : 'empty'}${t === 5 ? ' sanctum-pip' : ''}`} />
               ))}
             </div>
             {powerUpTier < 5 && phase !== 'BANKRUPTCY' ? (
@@ -170,14 +170,14 @@ export const TileInfoModal: React.FC = () => {
                   disabled={!canPowerUp || !canAfford}
                   onClick={() => { powerUpTile(selectedTileIndex); }}
                 >
-                  {!canAfford ? `Need ${nextCost} TP` : powerUpTier === 4 ? `🏨 Build Hotel` : `⚡ Power Up (Tier ${powerUpTier + 1})`}
+                  {!canAfford ? `Need ${nextCost} TP` : powerUpTier === 4 ? `🏨 Build Sanctum` : `⚡ Power Up (Tier ${powerUpTier + 1})`}
                 </button>
                 {powerUpTier > 0 && !canPowerUp && (
                   <div className="powerup-warning">Upgrade your other tiles to Tier {powerUpTier} first!</div>
                 )}
               </div>
             ) : powerUpTier >= 5 && phase !== 'BANKRUPTCY' ? (
-              <div className="powerup-maxed">🏨 HOTEL — MAXED OUT</div>
+              <div className="powerup-maxed">🏨 SANCTUM — MAXED OUT</div>
             ) : null}
             {canSell && (
               <button

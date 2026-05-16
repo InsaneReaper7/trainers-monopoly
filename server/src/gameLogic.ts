@@ -750,8 +750,8 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
       });
       player.tp -= repairCost;
       msg = repairCost === 0
-        ? 'Street Repairs — no upgrades owned, no charge!'
-        : `Street Repairs! Pay ${repairCost} TP (25 TP/house tier, 100 TP/hotel).`;
+        ? 'Street Repairs — no power-ups owned, no charge!'
+        : `Street Repairs! Pay ${repairCost} TP (25 TP/power-up tier, 100 TP/Sanctum).`;
     } else {
       const ownedSpaces = creatureSpaces.filter(s => state.boardOwnership[s.index]?.ownerId === player.id);
       if (ownedSpaces.length > 0) {
