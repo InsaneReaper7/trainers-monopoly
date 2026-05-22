@@ -16,7 +16,6 @@ import {
   reducerSellPowerUp, reducerDeclareBankruptcy, reducerPowerUpTile,
   reducerSwapStorageCreature, reducerSelectTile, reducerToggleStorageModal, reducerClearCardMessage,
 } from './gameLogic';
-import { BOARD_SPACES } from './data/board';
 import { CREATURES } from './data/creatures';
 
 const MAX_SLOTS = 6;
@@ -88,7 +87,7 @@ export class GameRoom {
 
   // ── Game start ─────────────────────────────────────────────────────────────
 
-  startGame(settings?: { startingTp: 500 | 1000 | 1500; taxPot: boolean }): void {
+  startGame(settings?: { startingTp: 500 | 1000 | 1500; taxPot: boolean; randomCreatureTiles: boolean; expandedCreatureTypes: boolean }): void {
     this.phase = 'PLAYING';
     const humanPlayers = this.slots.map(s => ({
       id: s.playerId,
@@ -143,7 +142,7 @@ export class GameRoom {
   private dispatch(state: GameState, action: ActionName, args: unknown[]): Partial<GameState> | null {
     const player = state.players[state.currentPlayerIndex];
     const spaceIndex = player?.position ?? 0;
-    const space = BOARD_SPACES[spaceIndex];
+    const space = state.board[spaceIndex];
 
     switch (action) {
       case 'rollForTurnOrder':
@@ -281,7 +280,7 @@ export class GameRoom {
     const player = state.players[state.currentPlayerIndex];
     const { phase, battleState } = state;
     const spaceIndex = player.position;
-    const space = BOARD_SPACES[spaceIndex];
+    const space = state.board[spaceIndex];
     const ownership = state.boardOwnership[spaceIndex];
 
     if (phase === 'ADVENTURE') {
@@ -332,9 +331,9 @@ export class GameRoom {
         .filter(([, o]) => o.ownerId === player.id)
         .map(([idx]) => parseInt(idx));
       for (const tileIdx of ownedTiles) {
-        const tileSpace = BOARD_SPACES[tileIdx];
+        const tileSpace = state.board[tileIdx];
         if (!tileSpace?.groupId || !tileSpace.speciesId) continue;
-        const groupSpaces = BOARD_SPACES.filter(s => s.groupId === tileSpace.groupId && s.type === 'Creature');
+        const groupSpaces = state.board.filter(s => s.groupId === tileSpace.groupId && s.type === 'Creature');
         const ownsAll = groupSpaces.every(s => state.boardOwnership[s.index]?.ownerId === player.id);
         if (!ownsAll) continue;
         const tileOwn = state.boardOwnership[tileIdx];

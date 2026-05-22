@@ -5,6 +5,7 @@ import path from 'path';
 import { Server } from 'socket.io';
 import type { ServerToClientEvents, ClientToServerEvents, ActionName } from './types';
 import { RoomManager } from './RoomManager';
+import { registerUser, loginUser, getUsernameFromToken, getCreaturedexForUser, unlockCreatureForUser, logoutUser } from './auth';
 
 const PORT = process.env.PORT ?? 3001;
 
@@ -25,6 +26,52 @@ const roomManager = new RoomManager();
 // From server/dist/index.js that is two directories up.
 const clientDist = path.resolve(__dirname, '../../dist');
 app.use(express.static(clientDist));
+
+// ── Authentication & Creaturedex APIs ──────────────────────────────────────────
+app.post('/api/auth/register', (req, res) => {
+  const { username, password } = req.body;
+  const result = registerUser(username, password);
+  res.json(result);
+});
+
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  const result = loginUser(username, password);
+  res.json(result);
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')[1] || '';
+  logoutUser(token);
+  res.json({ success: true, message: 'Logged out successfully.' });
+});
+
+app.get('/api/creaturedex', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')[1] || '';
+  const username = getUsernameFromToken(token);
+  if (!username) {
+    return res.status(401).json({ success: false, message: 'Unauthorized. Invalid or expired token.' });
+  }
+  const dex = getCreaturedexForUser(username);
+  res.json({ success: true, creaturedex: dex });
+});
+
+app.post('/api/creaturedex/unlock', (req, res) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(' ')[1] || '';
+  const username = getUsernameFromToken(token);
+  if (!username) {
+    return res.status(401).json({ success: false, message: 'Unauthorized. Invalid or expired token.' });
+  }
+  const { unlockKey } = req.body;
+  if (!unlockKey) {
+    return res.status(400).json({ success: false, message: 'unlockKey is required.' });
+  }
+  const result = unlockCreatureForUser(username, unlockKey);
+  res.json(result);
+});
 
 // ── Health check ───────────────────────────────────────────────────────────────
 app.get('/health', (_req, res) => res.json({ ok: true }));

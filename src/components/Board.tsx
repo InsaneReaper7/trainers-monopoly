@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import { BOARD_SPACES } from '../data/board';
 import { useGameStore } from '../store/gameStore';
 import './Board.css';
 
@@ -32,7 +31,7 @@ const groupColors: Record<string, string> = {
 };
 
 export const Board: React.FC = () => {
-  const { players, boardOwnership, gameLogs, selectTile, settings, taxPotBalance } = useGameStore();
+  const { board, players, boardOwnership, gameLogs, selectTile, settings, taxPotBalance } = useGameStore();
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -44,7 +43,7 @@ export const Board: React.FC = () => {
   return (
     <div className="board-container">
       <div className="board">
-        {BOARD_SPACES.map((space) => {
+        {board.map((space) => {
           const { gridRow, gridColumn } = getGridPosition(space.index);
           const ownership = boardOwnership[space.index];
           const owner = ownership ? players.find(p => p.id === ownership.ownerId) : null;

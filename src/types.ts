@@ -12,6 +12,7 @@ export interface CreatureForm {
   stage: 0 | 1 | 2; // 0: Base, 1: Stage 1, 2: Stage 2
   stats: CreatureStats;
   type: ElementType;
+  secondaryType?: ElementType;
 }
 
 export interface CreatureSpecies {

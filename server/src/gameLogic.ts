@@ -4,7 +4,7 @@
  * GameRoom calls these and merges the result into the authoritative state.
  */
 
-import { BOARD_SPACES, GROUP_HOUSE_COST, GROUP_RENT_PER_TIER } from './data/board';
+import { GROUP_HOUSE_COST, GROUP_RENT_PER_TIER, generateBoard } from './data/board';
 import { CREATURES } from './data/creatures';
 import { GYM_LEADERS, CHAMPION } from './data/gyms';
 import { calculateDamage } from './utils/combat';
@@ -42,7 +42,7 @@ const log = (state: GameState, msg: string) =>
 
 export function createInitialGameState(
   humanPlayers: { id: string; name: string; color: string; isCpu: boolean }[],
-  settings: { startingTp: 500 | 1000 | 1500; taxPot: boolean } = { startingTp: 1500, taxPot: false }
+  settings: { startingTp: 500 | 1000 | 1500; taxPot: boolean; randomCreatureTiles: boolean; expandedCreatureTypes: boolean } = { startingTp: 1500, taxPot: false, randomCreatureTiles: false, expandedCreatureTypes: false }
 ): GameState {
   const players = humanPlayers.map(p => ({
     id: p.id,
@@ -60,6 +60,7 @@ export function createInitialGameState(
     consecutiveDoubles: 0,
     inAdventure: false,
   }));
+  const generatedBoard = generateBoard(settings.randomCreatureTiles);
   return {
     players,
     currentPlayerIndex: 0,
@@ -77,9 +78,10 @@ export function createInitialGameState(
     gameLogs: ['Everyone rolls to determine who goes first!'],
     turnOrderRolls: {},
     turnOrderPending: players.map(p => p.id),
+    board: generatedBoard,
     settings,
     taxPotBalance: settings.taxPot
-      ? Object.fromEntries(BOARD_SPACES.filter(s => s.type === 'Tax').map(s => [s.index, 0]))
+      ? Object.fromEntries(generatedBoard.filter(s => s.type === 'Tax').map(s => [s.index, 0]))
       : {},
   };
 }
@@ -157,10 +159,17 @@ export function reducerRollDice(state: GameState): Partial<GameState> {
 
   players[state.currentPlayerIndex] = player;
 
-  const space = BOARD_SPACES[newPos];
+  const space = state.board[newPos];
   let wildEncounter = null;
   if (space.type === 'Wild') {
-    const wildSpecies = ['aerozor', 'toxeon', 'steelodon', 'mythicor'];
+    const wildSpecies = state.settings.expandedCreatureTypes
+      ? [
+          'aerozor', 'toxeon', 'steelodon', 'mythicor',
+          'aquaflow', 'rattapi', 'pebbleton', 'caterpinch', 'phantomin', 'machfist',
+          'gustwing', 'sludger', 'ironite', 'pixipuff',
+          'volcanis', 'hydradrac', 'venoshock', 'shadowgeist'
+        ]
+      : ['aerozor', 'toxeon', 'steelodon', 'mythicor'];
     wildEncounter = { speciesId: wildSpecies[Math.floor(Math.random() * wildSpecies.length)] };
   }
 
@@ -205,13 +214,13 @@ export function reducerEndTurn(state: GameState): Partial<GameState> {
 }
 
 export function reducerPowerUpTile(state: GameState, spaceIndex: number): Partial<GameState> {
-  const space = BOARD_SPACES[spaceIndex];
+  const space = state.board[spaceIndex];
   if (!space.groupId || !space.speciesId) return {};
   const player = { ...state.players[state.currentPlayerIndex] };
   const boardOwnership = { ...state.boardOwnership };
   const ownership = boardOwnership[spaceIndex];
   if (!ownership || ownership.ownerId !== player.id) return {};
-  const groupSpaces = BOARD_SPACES.filter(s => s.groupId === space.groupId && s.type === 'Creature');
+  const groupSpaces = state.board.filter(s => s.groupId === space.groupId && s.type === 'Creature');
   const ownsAll = groupSpaces.every(s => boardOwnership[s.index]?.ownerId === player.id);
   if (!ownsAll) return {};
   const minTierInGroup = Math.min(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0));
@@ -245,14 +254,14 @@ export function reducerPowerUpTile(state: GameState, spaceIndex: number): Partia
 }
 
 export function reducerSellPowerUp(state: GameState, spaceIndex: number): Partial<GameState> {
-  const space = BOARD_SPACES[spaceIndex];
+  const space = state.board[spaceIndex];
   if (!space.speciesId || !space.groupId) return {};
   const players = [...state.players];
   const player = { ...players[state.currentPlayerIndex] };
   const boardOwnership = { ...state.boardOwnership };
   const ownership = boardOwnership[spaceIndex];
   if (!ownership || ownership.ownerId !== player.id || ownership.powerUpTier === 0) return {};
-  const groupSpaces = BOARD_SPACES.filter(s => s.groupId === space.groupId && s.type === 'Creature');
+  const groupSpaces = state.board.filter(s => s.groupId === space.groupId && s.type === 'Creature');
   const maxTierInGroup = Math.max(...groupSpaces.map(s => boardOwnership[s.index]?.powerUpTier ?? 0));
   if (ownership.powerUpTier < maxTierInGroup) return {};
   const species = CREATURES[space.speciesId];
@@ -328,7 +337,7 @@ export function reducerDeclareBankruptcy(state: GameState): Partial<GameState> {
 }
 
 export function reducerCaptureTile(state: GameState, spaceIndex: number): Partial<GameState> {
-  const space = BOARD_SPACES[spaceIndex];
+  const space = state.board[spaceIndex];
   if (space.type !== 'Creature' || !space.speciesId) return {};
   const species = CREATURES[space.speciesId];
   const player = { ...state.players[state.currentPlayerIndex] };
@@ -359,7 +368,7 @@ export function reducerCaptureTile(state: GameState, spaceIndex: number): Partia
 
   const boardOwnership = { ...state.boardOwnership, [spaceIndex]: { ownerId: player.id, powerUpTier: 0, creatureId: newCreatureId } };
 
-  const groupSpaces = BOARD_SPACES.filter(s => s.groupId === space.groupId);
+  const groupSpaces = state.board.filter(s => s.groupId === space.groupId);
   const ownedInGroup = groupSpaces.filter(s => boardOwnership[s.index]?.ownerId === player.id);
   let targetStage = 0;
   if (groupSpaces.length === 3) {
@@ -468,7 +477,7 @@ export function reducerReleaseCreature(state: GameState, creatureId: string): Pa
 export function reducerPayRent(state: GameState, spaceIndex: number): Partial<GameState> {
   const ownership = state.boardOwnership[spaceIndex];
   if (!ownership) return {};
-  const space = BOARD_SPACES[spaceIndex];
+  const space = state.board[spaceIndex];
   const species = CREATURES[space.speciesId!];
   const players = [...state.players];
   const fromPlayer = { ...players[state.currentPlayerIndex] };
@@ -486,7 +495,7 @@ export function reducerPayRent(state: GameState, spaceIndex: number): Partial<Ga
 export function reducerStartChampionBattle(state: GameState): Partial<GameState> {
   const player = state.players[state.currentPlayerIndex];
   if (player.badges.length < 8) return {};
-  if (BOARD_SPACES[player.position].index !== 20) return {};
+  if (state.board[player.position].index !== 20) return {};
   const champCreature = CHAMPION.party[Math.floor(Math.random() * CHAMPION.party.length)];
   return {
     phase: 'BATTLE',
@@ -505,7 +514,7 @@ export function reducerStartChampionBattle(state: GameState): Partial<GameState>
 export function reducerStartBattle(state: GameState, spaceIndex: number, isGym: boolean): Partial<GameState> {
   const player = state.players[state.currentPlayerIndex];
   if (isGym) {
-    const space = BOARD_SPACES[spaceIndex];
+    const space = state.board[spaceIndex];
     const gymData = GYM_LEADERS[space.gymTier!];
     return {
       phase: 'BATTLE',
@@ -546,12 +555,16 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
   if (!challenger || !chalCreature) return {};
 
   let defStats: typeof chalCreature.stats;
-  let defType: string;
+  let defType1: string;
+  let defType2: string | undefined;
   let defName: string;
 
   if (state.battleState.type === 'GYM' || state.battleState.type === 'CHAMPION') {
     const form = state.battleState.defenderCreatureTemp!;
-    defStats = form.stats; defType = form.type; defName = form.name;
+    defStats = form.stats;
+    defType1 = form.type;
+    defType2 = form.secondaryType;
+    defName = form.name;
   } else {
     const defender = players.find(p => p.id === state.battleState!.defenderId);
     const defCreatureObj = defender?.party.find(c => c.id === state.battleState!.defenderCreatureId)
@@ -559,11 +572,11 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
     if (!defCreatureObj) {
       // Forfeit
       const defIdx = players.findIndex(p => p.id === state.battleState!.defenderId);
-      const space = BOARD_SPACES[challenger.position];
+      const space = state.board[challenger.position];
       const tileSpecies = CREATURES[space.speciesId!];
       if (tileSpecies) {
         const fo = state.boardOwnership[challenger.position];
-        const forfeitSpace = BOARD_SPACES[challenger.position];
+        const forfeitSpace = state.board[challenger.position];
         const fullRent = tileSpecies.baseRent + (GROUP_RENT_PER_TIER[forfeitSpace.groupId ?? ''] ?? 50) * (fo?.powerUpTier ?? 0);
         const rentAmount = Math.floor(fullRent / 2);
         players[players.findIndex(p => p.id === challenger.id)].tp -= rentAmount;
@@ -579,31 +592,60 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
     const form = defCreatureObj.currentStage === 0 ? defSpecies.baseForm
       : defCreatureObj.currentStage === 1 ? (defSpecies.stage1Form ?? defSpecies.baseForm)
       : (defSpecies.stage2Form ?? defSpecies.stage1Form ?? defSpecies.baseForm);
-    defStats = defCreatureObj.stats; defType = form!.type; defName = form!.name;
+    defStats = defCreatureObj.stats;
+    defType1 = form!.type;
+    defType2 = form!.secondaryType;
+    defName = form!.name;
   }
 
   const chalSpecies = CREATURES[chalCreature.speciesId];
   const chalForm = chalCreature.currentStage === 0 ? chalSpecies.baseForm
     : chalCreature.currentStage === 1 ? (chalSpecies.stage1Form ?? chalSpecies.baseForm)
     : (chalSpecies.stage2Form ?? chalSpecies.stage1Form ?? chalSpecies.baseForm);
-  const chalType = chalForm!.type;
+  const chalType1 = chalForm!.type;
+  const chalType2 = chalForm!.secondaryType;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const damageToDef = calculateDamage(chalCreature.stats, chalType as any, defStats, defType as any);
+  const chalDmgRes = calculateDamage(chalCreature.stats, chalType1 as any, chalType2 as any, defStats, defType1 as any, defType2 as any);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const damageToChal = calculateDamage(defStats, defType as any, chalCreature.stats, chalType as any);
+  const defDmgRes = calculateDamage(defStats, defType1 as any, defType2 as any, chalCreature.stats, chalType1 as any, chalType2 as any);
+
+  const damageToDef = chalDmgRes.damage;
+  const damageToChal = defDmgRes.damage;
   const chalWins = damageToDef >= damageToChal;
 
   const logs = [...state.battleState.logs, `Round ${state.battleState.round}:`];
-  logs.push(`${chalForm!.name} deals ${damageToDef} dmg!`);
-  logs.push(`${defName} deals ${damageToChal} dmg!`);
+
+  let chalEffectiveness = '';
+  if (chalDmgRes.multiplier >= 2.0) {
+    chalEffectiveness = ` 💥 SUPER EFFECTIVE (${chalDmgRes.multiplier}x)!`;
+  } else if (chalDmgRes.multiplier === 0.0) {
+    chalEffectiveness = ` 🛡️ IMMUNE (0.0x)!`;
+  } else if (chalDmgRes.multiplier <= 0.5) {
+    chalEffectiveness = ` 🛡️ RESISTED (${chalDmgRes.multiplier}x)!`;
+  }
+
+  let defEffectiveness = '';
+  if (defDmgRes.multiplier >= 2.0) {
+    defEffectiveness = ` 💥 SUPER EFFECTIVE (${defDmgRes.multiplier}x)!`;
+  } else if (defDmgRes.multiplier === 0.0) {
+    defEffectiveness = ` 🛡️ IMMUNE (0.0x)!`;
+  } else if (defDmgRes.multiplier <= 0.5) {
+    defEffectiveness = ` 🛡️ RESISTED (${defDmgRes.multiplier}x)!`;
+  }
+
+  const chalTypeLog = chalType2 ? ` (${chalDmgRes.typeUsed}-type attack)` : '';
+  const defTypeLog = defType2 ? ` (${defDmgRes.typeUsed}-type attack)` : '';
+
+  logs.push(`${chalForm!.name} deals ${damageToDef} dmg!${chalTypeLog}${chalEffectiveness}`);
+  logs.push(`${defName} deals ${damageToChal} dmg!${defTypeLog}${defEffectiveness}`);
   logs.push(chalWins ? 'Challenger won the battle!' : 'Defender won the battle!');
 
   const chalIndex = players.findIndex(p => p.id === challenger.id);
   const chalCreatureIndex = players[chalIndex].party.findIndex(c => c.id === chalCreature.id);
 
   const gymBadgeAlreadyOwned = state.battleState.type === 'GYM' && chalWins && (() => {
-    const space = BOARD_SPACES[challenger.position];
+    const space = state.board[challenger.position];
     const gymData = GYM_LEADERS[space.gymTier!];
     return gymData ? players[chalIndex].badges.includes(gymData.badgeReward) : false;
   })();
@@ -617,7 +659,7 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
   }
 
   if (state.battleState.type === 'TILE') {
-    const space = BOARD_SPACES[challenger.position];
+    const space = state.board[challenger.position];
     const tileSp = CREATURES[space.speciesId!];
     const tileOwnership = state.boardOwnership[challenger.position];
     const fullRent = tileSp.baseRent + (GROUP_RENT_PER_TIER[space.groupId!] ?? 50) * (tileOwnership?.powerUpTier ?? 0);
@@ -638,7 +680,7 @@ export function reducerExecuteBattleRound(state: GameState): Partial<GameState> 
     }
   } else if (state.battleState.type === 'GYM') {
     if (chalWins) {
-      const space = BOARD_SPACES[challenger.position];
+      const space = state.board[challenger.position];
       const gymData = GYM_LEADERS[space.gymTier!];
       if (gymData && !players[chalIndex].badges.includes(gymData.badgeReward)) {
         players[chalIndex] = { ...players[chalIndex], badges: [...players[chalIndex].badges, gymData.badgeReward], tp: players[chalIndex].tp + 500 };
@@ -703,7 +745,7 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
   const rand = Math.random();
   const originalPosition = player.position;
 
-  const creatureSpaces = BOARD_SPACES.filter(s => s.type === 'Creature');
+  const creatureSpaces = state.board.filter(s => s.type === 'Creature');
 
   if (deckType === 'Scout') {
     if (rand < 1 / 11) { msg = 'Found a hidden item! Gain 100 TP.'; player.tp += 100; }
@@ -809,7 +851,7 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
   const newLogs = log(state, `🃏 ${player.name} drew a card: ${msg}`);
   if (player.tp < 0) return { players, cardMessage: msg, phase: 'BANKRUPTCY', gameLogs: newLogs };
 
-  const landedSpace = BOARD_SPACES[player.position];
+  const landedSpace = state.board[player.position];
   let landingPhase: GamePhase = 'END_TURN';
   let landingWildEncounter: { speciesId: string } | null = null;
 
@@ -819,7 +861,14 @@ export function reducerDrawCard(state: GameState, deckType: string): Partial<Gam
       landingPhase = 'ACTION';
     } else if (landedSpace.type === 'Wild') {
       landingPhase = 'ACTION';
-      const wildSpecies = ['aerozor', 'toxeon', 'steelodon', 'mythicor'];
+      const wildSpecies = state.settings.expandedCreatureTypes
+        ? [
+            'aerozor', 'toxeon', 'steelodon', 'mythicor',
+            'aquaflow', 'rattapi', 'pebbleton', 'caterpinch', 'phantomin', 'machfist',
+            'gustwing', 'sludger', 'ironite', 'pixipuff',
+            'volcanis', 'hydradrac', 'venoshock', 'shadowgeist'
+          ]
+        : ['aerozor', 'toxeon', 'steelodon', 'mythicor'];
       landingWildEncounter = { speciesId: wildSpecies[Math.floor(Math.random() * wildSpecies.length)] };
     } else if (landedSpace.type === 'Gym') {
       landingPhase = 'ACTION';
@@ -948,7 +997,7 @@ export function reducerAcceptTrade(state: GameState): Partial<GameState> {
   const triggerEvolutions = (p: typeof initPlayer, playerId: string) => {
     const groupOwned: Record<string, number> = {};
     const groupTotal: Record<string, number> = {};
-    BOARD_SPACES.forEach(space => {
+    state.board.forEach(space => {
       if (space.type !== 'Creature' || !space.groupId) return;
       groupTotal[space.groupId] = (groupTotal[space.groupId] ?? 0) + 1;
       if (boardOwnership[space.index]?.ownerId === playerId) groupOwned[space.groupId] = (groupOwned[space.groupId] ?? 0) + 1;

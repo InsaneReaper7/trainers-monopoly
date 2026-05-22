@@ -80,7 +80,7 @@ export const WaitingRoom: React.FC = () => {
               ))}
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <div>
               <div style={{ color: '#ccc', fontSize: '0.85rem' }}>Tax Pot</div>
               <div style={{ color: '#64748b', fontSize: '0.68rem' }}>Tax payments accumulate; landing player collects</div>
@@ -88,6 +88,26 @@ export const WaitingRoom: React.FC = () => {
             <button className="btn-primary" onClick={() => updateSettings({ taxPot: !settings.taxPot })}
               style={{ padding: '3px 12px', fontSize: '0.8rem', background: settings.taxPot ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}>
               {settings.taxPot ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+            <div>
+              <div style={{ color: '#ccc', fontSize: '0.85rem' }}>Random Creature Tiles</div>
+              <div style={{ color: '#64748b', fontSize: '0.68rem' }}>Randomizes species & renames tiles per board type group</div>
+            </div>
+            <button className="btn-primary" onClick={() => updateSettings({ randomCreatureTiles: !settings.randomCreatureTiles })}
+              style={{ padding: '3px 12px', fontSize: '0.8rem', background: settings.randomCreatureTiles ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}>
+              {settings.randomCreatureTiles ? 'ON' : 'OFF'}
+            </button>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ color: '#ccc', fontSize: '0.85rem' }}>Expanded Creature Types</div>
+              <div style={{ color: '#64748b', fontSize: '0.68rem' }}>Adds non-board & dual-type creatures to wild pool</div>
+            </div>
+            <button className="btn-primary" onClick={() => updateSettings({ expandedCreatureTypes: !settings.expandedCreatureTypes })}
+              style={{ padding: '3px 12px', fontSize: '0.8rem', background: settings.expandedCreatureTypes ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}>
+              {settings.expandedCreatureTypes ? 'ON' : 'OFF'}
             </button>
           </div>
         </div>

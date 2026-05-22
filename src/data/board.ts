@@ -79,3 +79,41 @@ export const BOARD_SPACES: BoardSpace[] = [
   { index: 38, name: 'Dracoveil Tile 2', type: 'Creature', speciesId: 'dracoveil', groupId: 'darkBlue' },
   { index: 39, name: 'Gym 8 - Earth', type: 'Gym', gymTier: 8, gymElement: 'Ground' },
 ];
+
+import { CREATURES } from './creatures';
+
+export const generateBoard = (randomCreatureTiles: boolean): BoardSpace[] => {
+  if (!randomCreatureTiles) {
+    return BOARD_SPACES;
+  }
+  
+  const groupSpecies: Record<string, string> = {
+    brown: Math.random() < 0.5 ? 'terravore' : 'digmole',
+    lightBlue: Math.random() < 0.5 ? 'pyrowl' : 'pyroshell',
+    pink: Math.random() < 0.5 ? 'lumibulb' : 'leafawn',
+    orange: Math.random() < 0.5 ? 'voltpaw' : 'sparkitten',
+    red: Math.random() < 0.5 ? 'psyhorn' : 'mindpup',
+    yellow: Math.random() < 0.5 ? 'shadowrak' : 'duskclaw',
+    green: Math.random() < 0.5 ? 'glacieon' : 'frosbeast',
+    darkBlue: Math.random() < 0.5 ? 'dracoveil' : 'wyrmlet',
+  };
+  
+  return BOARD_SPACES.map(space => {
+    if (space.type === 'Creature' && space.groupId && groupSpecies[space.groupId]) {
+      const chosenSpeciesId = groupSpecies[space.groupId];
+      const chosenSpecies = CREATURES[chosenSpeciesId];
+      if (chosenSpecies) {
+        const creatureName = chosenSpecies.baseForm.name;
+        const tileNumberMatch = space.name.match(/Tile \d+/);
+        const suffix = tileNumberMatch ? tileNumberMatch[0] : '';
+        const name = `${creatureName} ${suffix}`.trim();
+        return {
+          ...space,
+          name,
+          speciesId: chosenSpeciesId
+        };
+      }
+    }
+    return space;
+  });
+};

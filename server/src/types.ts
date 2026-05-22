@@ -12,6 +12,7 @@ export interface CreatureForm {
   stage: 0 | 1 | 2;
   stats: CreatureStats;
   type: ElementType;
+  secondaryType?: ElementType;
 }
 
 export interface CreatureSpecies {
@@ -113,7 +114,8 @@ export interface GameState {
   winner?: string | null;
   turnOrderRolls: Record<string, [number, number]>;
   turnOrderPending: string[];
-  settings: { startingTp: 500 | 1000 | 1500; taxPot: boolean };
+  board: BoardSpace[];
+  settings: { startingTp: 500 | 1000 | 1500; taxPot: boolean; randomCreatureTiles: boolean; expandedCreatureTypes: boolean };
   taxPotBalance: Record<number, number>;
 }
 
@@ -171,6 +173,6 @@ export interface ClientToServerEvents {
   'room:join': (data: { roomCode: string; playerName: string; color: string }) => void;
   'room:reconnect': (data: { roomCode: string; reconnectToken: string }) => void;
   'room:leave': () => void;
-  'lobby:start_game': (data?: { settings?: { startingTp: 500 | 1000 | 1500; taxPot: boolean } }) => void;
+  'lobby:start_game': (data?: { settings?: { startingTp: 500 | 1000 | 1500; taxPot: boolean; randomCreatureTiles: boolean; expandedCreatureTypes: boolean } }) => void;
   'game:action': (data: { action: ActionName; args: unknown[] }) => void;
 }

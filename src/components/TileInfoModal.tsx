@@ -1,18 +1,39 @@
 import React from 'react';
 import { useGameStore } from '../store/gameStore';
-import { BOARD_SPACES, GROUP_HOUSE_COST, GROUP_RENT_PER_TIER } from '../data/board';
+import { GROUP_HOUSE_COST, GROUP_RENT_PER_TIER } from '../data/board';
 import { CREATURES } from '../data/creatures';
 import './TileInfoModal.css';
 
 const POWER_COST = (groupId: string, groupSize: number) => (GROUP_HOUSE_COST[groupId] ?? 100) * groupSize;
 const TIER_STARS = ['○', '★', '★★', '★★★', '★★★★', '🏨'];
 
+const TYPE_COLORS: Record<string, string> = {
+  Normal: '#A8A77A',
+  Fire: '#EE8130',
+  Water: '#6390F0',
+  Electric: '#F7D02C',
+  Grass: '#7AC74C',
+  Ice: '#96D9D6',
+  Fighting: '#C22E28',
+  Poison: '#A33EA1',
+  Ground: '#E2BF65',
+  Flying: '#A98FF3',
+  Psychic: '#F95587',
+  Bug: '#A6B91A',
+  Rock: '#B6A136',
+  Ghost: '#735797',
+  Dragon: '#6F35FC',
+  Dark: '#705746',
+  Steel: '#B7B7CE',
+  Fairy: '#D685AD'
+};
+
 export const TileInfoModal: React.FC = () => {
-  const { selectedTileIndex, selectTile, boardOwnership, players, currentPlayerIndex, powerUpTile, sellPowerUp, phase } = useGameStore();
+  const { selectedTileIndex, selectTile, boardOwnership, players, currentPlayerIndex, powerUpTile, sellPowerUp, phase, board } = useGameStore();
 
   if (selectedTileIndex === null) return null;
 
-  const space = BOARD_SPACES[selectedTileIndex];
+  const space = board[selectedTileIndex];
   if (!space.speciesId || space.type !== 'Creature') return null;
 
   const species = CREATURES[space.speciesId];
@@ -23,7 +44,7 @@ export const TileInfoModal: React.FC = () => {
   const powerUpTier = ownership?.powerUpTier ?? 0;
 
   // Check if player owns all tiles in group
-  const groupSpaces = BOARD_SPACES.filter(s => s.groupId === space.groupId && s.type === 'Creature');
+  const groupSpaces = board.filter(s => s.groupId === space.groupId && s.type === 'Creature');
   const ownsAll = groupSpaces.every(s => boardOwnership[s.index]?.ownerId === currentPlayer.id);
 
   // Uniform tier enforcement: this tile can only be powered up if all siblings are at same or higher tier
@@ -78,7 +99,10 @@ export const TileInfoModal: React.FC = () => {
             </h2>
             <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: '0.25rem' }}>{space.name}</div>
             <div className="tile-type-row">
-              <span className="type-chip" style={{ backgroundColor: '#6b7280' }}>{species.baseForm.type}</span>
+              <span className="type-chip" style={{ backgroundColor: TYPE_COLORS[species.baseForm.type] || '#6b7280' }}>{species.baseForm.type}</span>
+              {species.baseForm.secondaryType && (
+                <span className="type-chip" style={{ backgroundColor: TYPE_COLORS[species.baseForm.secondaryType] || '#6b7280' }}>{species.baseForm.secondaryType}</span>
+              )}
               <span className="tier-chip">Tier {TIER_STARS[powerUpTier]}</span>
             </div>
             <div className="tile-owner-row">

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useGameStore } from '../store/gameStore';
 import { useMultiplayerStore } from '../multiplayer/multiplayerStore';
 import { useIsMyTurn } from '../multiplayer/hooks/useIsMyTurn';
-import { BOARD_SPACES, GROUP_RENT_PER_TIER } from '../data/board';
+import { GROUP_RENT_PER_TIER } from '../data/board';
 import { CREATURES } from '../data/creatures';
 import { GYM_LEADERS } from '../data/gyms';
 import type { ActiveCreature } from '../types';
@@ -12,7 +12,7 @@ import './PlayerDashboard.css';
 export const PlayerDashboard: React.FC = () => {
   const {
     players, currentPlayerIndex, phase, dice, boardOwnership, battleState, cardMessage, rolledDoubles, pendingGymChallenge,
-    turnOrderRolls, turnOrderPending, settings, taxPotBalance,
+    turnOrderRolls, turnOrderPending, settings, taxPotBalance, board,
     rollDice, rollForTurnOrder, endTurn, captureTile, payRent, startBattle, startChampionBattle, selectBattleCreature, executeBattleRound, endBattle,
     releaseCreature, drawCard, payTax, clearCardMessage, playCpuAction, declareBankruptcy,
     payAdventureFine, loseAdventureTurn,
@@ -23,6 +23,22 @@ export const PlayerDashboard: React.FC = () => {
   const isOnline = mpPhase === 'PLAYING';
 
   const [selectedCreature, setSelectedCreature] = useState<ActiveCreature | null>(null);
+
+  const renderBattleLogLine = (log: string, i: number) => {
+    let style: React.CSSProperties = { margin: '2px 0', padding: '2px 4px', borderRadius: '3px' };
+    if (log.includes('SUPER EFFECTIVE')) {
+      style = { ...style, color: '#fca5a5', fontWeight: 'bold', background: 'rgba(239, 68, 68, 0.15)' };
+    } else if (log.includes('RESISTED')) {
+      style = { ...style, color: '#93c5fd', fontWeight: 'bold', background: 'rgba(59, 130, 246, 0.15)' };
+    } else if (log.includes('IMMUNE')) {
+      style = { ...style, color: '#cbd5e1', fontStyle: 'italic', background: 'rgba(100, 116, 139, 0.15)' };
+    } else if (log.includes('won the battle') || log.includes('won by forfeit')) {
+      style = { ...style, color: '#86efac', fontWeight: 'bold', background: 'rgba(34, 197, 94, 0.2)' };
+    } else if (log.includes('gained') || log.includes('leveled up')) {
+      style = { ...style, color: '#fef08a', background: 'rgba(234, 179, 8, 0.1)' };
+    }
+    return <div key={i} style={style}>{log}</div>;
+  };
 
   const playerPosition = players[currentPlayerIndex]?.position;
   useEffect(() => {
@@ -37,7 +53,7 @@ export const PlayerDashboard: React.FC = () => {
   if (players.length === 0) return null;
 
   const currentPlayer = players[currentPlayerIndex];
-  const currentSpace = BOARD_SPACES[currentPlayer.position];
+  const currentSpace = board[currentPlayer.position];
   const spaceOwnership = boardOwnership[currentPlayer.position];
   const isOwnedByMe = spaceOwnership?.ownerId === currentPlayer.id;
   const isOwnedByOther = spaceOwnership && !isOwnedByMe;
@@ -132,7 +148,7 @@ export const PlayerDashboard: React.FC = () => {
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             <div style={{ fontSize: '0.8rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem', borderRadius: '4px', maxHeight: '100px', overflowY: 'auto' }}>
-              {battleState.logs.map((log, i) => <div key={i}>{log}</div>)}
+              {battleState.logs.map((log, i) => renderBattleLogLine(log, i))}
             </div>
             <button className="btn-primary" onClick={executeBattleRound}>Attack / Next Round</button>
           </div>
@@ -142,7 +158,7 @@ export const PlayerDashboard: React.FC = () => {
       return (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <div style={{ fontSize: '0.8rem', background: 'rgba(0,0,0,0.5)', padding: '0.5rem', borderRadius: '4px', maxHeight: '100px', overflowY: 'auto' }}>
-            {battleState.logs.map((log, i) => <div key={i}>{log}</div>)}
+            {battleState.logs.map((log, i) => renderBattleLogLine(log, i))}
           </div>
           <button className="btn-primary" onClick={endBattle}>Finish Battle</button>
         </div>

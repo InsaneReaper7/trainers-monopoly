@@ -26,3 +26,12 @@ server/dist
 *.njsproj
 *.sln
 *.sw?
+
+# Database persistence files
+server/users.json
+
+# Local agent files
+.claude
+
+
+

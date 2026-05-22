@@ -1,37 +1,52 @@
 import type { ElementType, CreatureStats } from '../types';
 
-export const getTypeMultiplier = (attacker: ElementType, defender: ElementType): number => {
+export const getTypeMultiplier = (attacker: ElementType, defenderType1: ElementType, defenderType2?: ElementType): number => {
   const chart: Record<ElementType, Partial<Record<ElementType, number>>> = {
-    Fire: { Grass: 1.2, Ice: 1.2, Steel: 1.2, Water: 0.8, Rock: 0.8, Ground: 0.8 },
-    Water: { Fire: 1.2, Ground: 1.2, Rock: 1.2, Grass: 0.8, Electric: 0.8 },
-    Grass: { Water: 1.2, Ground: 1.2, Rock: 1.2, Fire: 0.8, Ice: 0.8, Flying: 0.8 },
-    Electric: { Water: 1.2, Flying: 1.2, Ground: 0.8, Grass: 0.8 },
-    Psychic: { Fighting: 1.2, Poison: 1.2, Dark: 0.8, Bug: 0.8, Ghost: 0.8 },
-    Dark: { Psychic: 1.2, Ghost: 1.2, Fighting: 0.8, Fairy: 0.8 },
-    Dragon: { Dragon: 1.2, Ice: 0.8, Fairy: 0.8 },
-    Steel: { Ice: 1.2, Rock: 1.2, Fairy: 1.2, Fire: 0.8, Fighting: 0.8, Ground: 0.8 },
-    Normal: { Fighting: 0.8 },
-    Ground: { Fire: 1.2, Electric: 1.2, Poison: 1.2, Rock: 1.2, Steel: 1.2, Water: 0.8, Grass: 0.8, Ice: 0.8 },
-    Ice: { Grass: 1.2, Ground: 1.2, Flying: 1.2, Dragon: 1.2, Fire: 0.8, Water: 0.8, Steel: 0.8, Fighting: 0.8 },
-    Bug: { Grass: 1.2, Psychic: 1.2, Dark: 1.2, Fire: 0.8, Fighting: 0.8, Poison: 0.8, Flying: 0.8, Ghost: 0.8, Steel: 0.8, Fairy: 0.8 },
-    Ghost: { Psychic: 1.2, Ghost: 1.2, Dark: 0.8 },
-    Fairy: { Fighting: 1.2, Dragon: 1.2, Dark: 1.2, Poison: 0.8, Steel: 0.8, Fire: 0.8 },
-    Fighting: { Normal: 1.2, Ice: 1.2, Rock: 1.2, Dark: 1.2, Steel: 1.2, Poison: 0.8, Flying: 0.8, Psychic: 0.8, Bug: 0.8, Fairy: 0.8 },
-    Poison: { Grass: 1.2, Fairy: 1.2, Poison: 0.8, Ground: 0.8, Rock: 0.8, Ghost: 0.8, Steel: 0.8 },
-    Rock: { Fire: 1.2, Ice: 1.2, Flying: 1.2, Bug: 1.2, Fighting: 0.8, Ground: 0.8, Steel: 0.8 },
-    Flying: { Grass: 1.2, Fighting: 1.2, Bug: 1.2, Electric: 0.8, Rock: 0.8, Steel: 0.8 }
+    Normal: { Rock: 0.5, Steel: 0.5, Ghost: 0 },
+    Fire: { Fire: 0.5, Water: 0.5, Grass: 2, Ice: 2, Bug: 2, Rock: 0.5, Dragon: 0.5, Steel: 2 },
+    Water: { Fire: 2, Water: 0.5, Grass: 0.5, Ground: 2, Rock: 2, Dragon: 0.5 },
+    Electric: { Water: 2, Electric: 0.5, Grass: 0.5, Ground: 0, Flying: 2, Dragon: 0.5 },
+    Grass: { Fire: 0.5, Water: 2, Grass: 0.5, Poison: 0.5, Ground: 2, Flying: 0.5, Bug: 0.5, Rock: 2, Dragon: 0.5, Steel: 0.5 },
+    Ice: { Fire: 0.5, Water: 0.5, Grass: 2, Ice: 0.5, Ground: 2, Flying: 2, Dragon: 2, Steel: 0.5 },
+    Fighting: { Normal: 2, Ice: 2, Poison: 0.5, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Rock: 2, Ghost: 0, Dark: 2, Steel: 2, Fairy: 0.5 },
+    Poison: { Grass: 2, Poison: 0.5, Ground: 0.5, Rock: 0.5, Ghost: 0.5, Steel: 0, Fairy: 2 },
+    Ground: { Fire: 2, Electric: 2, Grass: 0.5, Poison: 2, Flying: 0, Bug: 0.5, Rock: 2, Steel: 2 },
+    Flying: { Electric: 0.5, Grass: 2, Fighting: 2, Bug: 2, Rock: 0.5, Steel: 0.5 },
+    Psychic: { Fighting: 2, Poison: 2, Psychic: 0.5, Dark: 0, Steel: 0.5 },
+    Bug: { Fire: 0.5, Grass: 2, Fighting: 0.5, Poison: 0.5, Flying: 0.5, Psychic: 2, Ghost: 0.5, Dark: 2, Steel: 0.5, Fairy: 0.5 },
+    Rock: { Fire: 2, Ice: 2, Fighting: 0.5, Ground: 0.5, Flying: 2, Bug: 2, Steel: 0.5 },
+    Ghost: { Normal: 0, Psychic: 2, Ghost: 2, Dark: 0.5 },
+    Dragon: { Dragon: 2, Steel: 0.5, Fairy: 0 },
+    Dark: { Fighting: 0.5, Psychic: 2, Ghost: 2, Dark: 0.5, Fairy: 0.5 },
+    Steel: { Fire: 0.5, Water: 0.5, Electric: 0.5, Ice: 2, Rock: 2, Steel: 0.5, Fairy: 2 },
+    Fairy: { Fire: 0.5, Fighting: 2, Poison: 0.5, Dragon: 2, Dark: 2, Steel: 0.5 }
   };
   
-  return chart[attacker]?.[defender] ?? 1.0;
+  const mult1 = chart[attacker]?.[defenderType1] ?? 1.0;
+  const mult2 = defenderType2 ? (chart[attacker]?.[defenderType2] ?? 1.0) : 1.0;
+  return mult1 * mult2;
 };
 
-export const calculateDamage = (attackerStats: CreatureStats, attackerType: ElementType, defenderStats: CreatureStats, defenderType: ElementType): number => {
-  const multiplier = getTypeMultiplier(attackerType, defenderType);
-  const baseDamage = attackerStats.atk * multiplier - defenderStats.def;
-  return Math.max(1, Math.ceil(baseDamage));
+export const calculateDamage = (
+  attackerStats: CreatureStats,
+  attackerType1: ElementType,
+  attackerType2: ElementType | undefined,
+  defenderStats: CreatureStats,
+  defenderType1: ElementType,
+  defenderType2?: ElementType
+): { damage: number; multiplier: number; typeUsed: ElementType } => {
+  const mult1 = getTypeMultiplier(attackerType1, defenderType1, defenderType2);
+  const mult2 = attackerType2 ? getTypeMultiplier(attackerType2, defenderType1, defenderType2) : -1;
+  
+  const bestMult = Math.max(mult1, mult2);
+  const typeUsed = (attackerType2 && mult2 > mult1) ? attackerType2 : attackerType1;
+  
+  const baseDamage = attackerStats.atk * bestMult - defenderStats.def;
+  const damage = Math.max(1, Math.ceil(baseDamage));
+  
+  return { damage, multiplier: bestMult, typeUsed };
 };
 
 export const calculateExpToNextLevel = (level: number): number => {
-  // A medium-fast growth curve: level^3
   return Math.floor(Math.pow(level + 1, 3));
 };

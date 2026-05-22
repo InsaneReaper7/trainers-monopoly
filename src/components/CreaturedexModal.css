@@ -1,0 +1,602 @@
+.creaturedex-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.creaturedex-container {
+  width: 90vw;
+  max-width: 1100px;
+  height: 85vh;
+  max-height: 800px;
+  background: rgba(30, 41, 59, 0.75);
+  display: flex;
+  flex-direction: column;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.creaturedex-close {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 2.2rem;
+  line-height: 1;
+  transition: color 0.2s, transform 0.2s;
+}
+
+.creaturedex-close:hover {
+  color: #fff;
+  transform: rotate(90deg);
+}
+
+/* Header styling */
+.creaturedex-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 1.2rem;
+}
+
+.dex-title {
+  font-size: 2.2rem;
+  margin-bottom: 0.25rem;
+}
+
+.dex-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.dex-progress-section {
+  width: 320px;
+}
+
+.dex-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+  font-weight: 500;
+}
+
+.dex-progress-text strong {
+  color: #fff;
+  font-size: 0.95rem;
+}
+
+.dex-percentage {
+  color: #fbbf24;
+  font-weight: bold;
+}
+
+.dex-progress-bar-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dex-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #60a5fa, #c084fc);
+  border-radius: 4px;
+  box-shadow: 0 0 8px rgba(96, 165, 250, 0.5);
+  transition: width 0.4s ease-out;
+}
+
+/* Filters styling */
+.creaturedex-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.dex-filters-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.dex-search-input {
+  flex: 1;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.dex-search-input:focus {
+  border-color: var(--primary);
+}
+
+.dex-status-toggle {
+  display: flex;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 8px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dex-status-btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: transparent;
+  color: var(--text-muted);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.dex-status-btn.active {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.dex-types-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  max-height: 70px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dex-type-chip {
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #fff;
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dex-type-chip.all-types {
+  background: #334155;
+}
+
+.dex-type-chip.all-types.active {
+  background: #475569;
+  box-shadow: 0 0 10px rgba(71, 85, 105, 0.4);
+}
+
+.dex-type-chip:not(.all-types):hover {
+  background: var(--type-color) !important;
+  opacity: 0.85;
+}
+
+.dex-type-chip:not(.all-types).active {
+  box-shadow: 0 0 12px var(--type-color);
+  transform: translateY(-1px);
+}
+
+/* Body and Layout */
+.creaturedex-body {
+  display: flex;
+  gap: 1.5rem;
+  flex: 1;
+  overflow: hidden;
+}
+
+.creaturedex-list-pane {
+  flex: 1.3;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.creaturedex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.8rem;
+}
+
+.creaturedex-inspector-pane {
+  flex: 0.9;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Card Styling */
+.dex-card {
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  min-height: 110px;
+  justify-content: space-between;
+}
+
+.dex-card:hover {
+  transform: translateY(-3px);
+  background: rgba(15, 23, 42, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.dex-card.selected {
+  border-color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.25);
+}
+
+.dex-card.locked {
+  opacity: 0.5;
+  background: rgba(15, 23, 42, 0.2);
+}
+
+.dex-card-id {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.dex-card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0.3rem 0;
+  letter-spacing: -0.01em;
+}
+
+.dex-card-type-row {
+  display: flex;
+  gap: 0.3rem;
+  margin-bottom: 0.5rem;
+}
+
+.dex-mini-badge {
+  font-size: 0.65rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.dex-mini-badge.locked {
+  background: #475569;
+}
+
+.dex-card-stages-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.dex-stage-dot {
+  font-size: 0.68rem;
+  font-weight: bold;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dex-stage-dot.unlocked {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.dex-stage-dot.locked {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+.dex-stage-dot.active {
+  background: #fbbf24;
+  color: #000;
+  border-color: #fbbf24;
+}
+
+/* Inspector pane styling */
+.dex-inspector-content {
+  height: 100%;
+}
+
+.dex-inspector-card {
+  height: 100%;
+  background: rgba(15, 23, 42, 0.4);
+  border-radius: 12px;
+  padding: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow-y: auto;
+}
+
+.dex-inspector-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.dex-inspector-tier {
+  font-size: 0.72rem;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  margin-bottom: 0.2rem;
+}
+
+.dex-inspector-name {
+  font-size: 1.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.dex-inspector-types {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.type-chip {
+  padding: 0.4rem 1rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.dex-inspector-avatar-box {
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.dex-avatar-silhouette-wrapper {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dex-avatar-silhouette-wrapper.unlocked {
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0) 70%);
+}
+
+.dex-avatar-silhouette-wrapper.locked {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+.dex-avatar-emoji {
+  font-size: 4.5rem;
+}
+
+.dex-inspector-stats {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.dex-stats-title {
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.8rem;
+  text-align: center;
+}
+
+.dex-stat-row {
+  display: flex;
+  align-items: center;
+  margin: 0.45rem 0;
+  font-size: 0.85rem;
+}
+
+.dex-stat-label {
+  width: 35px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.dex-stat-val {
+  width: 30px;
+  font-weight: 700;
+  text-align: right;
+  margin-right: 10px;
+}
+
+.dex-stat-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dex-stat-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.dex-stat-bar-fill.hp { background: #10b981; }
+.dex-stat-bar-fill.atk { background: #ef4444; }
+.dex-stat-bar-fill.def { background: #3b82f6; }
+.dex-stat-bar-fill.spd { background: #eab308; }
+
+.dex-inspector-meta {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  padding: 0.6rem;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.dex-meta-label {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  margin-bottom: 0.15rem;
+}
+
+.dex-meta-value {
+  font-weight: bold;
+  color: #fbbf24;
+}
+
+.dex-evolution-navigation {
+  display: flex;
+  gap: 0.3rem;
+  justify-content: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 0.8rem;
+}
+
+.dex-evo-btn {
+  flex: 1;
+  padding: 0.45rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-muted);
+  font-weight: 600;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.dex-evo-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.dex-evo-btn.selected {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.3);
+}
+
+/* Locked inspector styling */
+.dex-inspector-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  height: 100%;
+}
+
+.dex-lock-icon {
+  font-size: 3.5rem;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 0 12px rgba(255,255,255,0.15));
+}
+
+.locked-title {
+  font-size: 1.4rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.locked-desc {
+  font-size: 0.85rem;
+  color: #64748b;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+  max-width: 250px;
+}
+
+.dex-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 150px;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scrollbar customizations */
+.creaturedex-list-pane::-webkit-scrollbar,
+.dex-types-list::-webkit-scrollbar,
+.dex-inspector-card::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.creaturedex-list-pane::-webkit-scrollbar-track,
+.dex-types-list::-webkit-scrollbar-track,
+.dex-inspector-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.creaturedex-list-pane::-webkit-scrollbar-thumb,
+.dex-types-list::-webkit-scrollbar-thumb,
+.dex-inspector-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.creaturedex-list-pane::-webkit-scrollbar-thumb:hover,
+.dex-types-list::-webkit-scrollbar-thumb:hover,
+.dex-inspector-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .creaturedex-container {
+    height: 95vh;
+    width: 95vw;
+  }
+  .creaturedex-body {
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .creaturedex-list-pane {
+    overflow-y: visible;
+    flex: none;
+  }
+  .creaturedex-inspector-pane {
+    flex: none;
+    margin-top: 1rem;
+    height: auto;
+  }
+  .dex-inspector-card {
+    height: auto;
+  }
+}

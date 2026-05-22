@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Board } from './components/Board';
 import { PlayerDashboard } from './components/PlayerDashboard';
 import { MainMenu } from './components/MainMenu';
@@ -9,17 +9,47 @@ import { MultiplayerLobby } from './components/multiplayer/MultiplayerLobby';
 import { WaitingRoom } from './components/multiplayer/WaitingRoom';
 import { DisconnectedOverlay } from './components/multiplayer/DisconnectedOverlay';
 import { useGameStore } from './store/gameStore';
+import type { Player } from './store/gameStore';
 import { useMultiplayerStore } from './multiplayer/multiplayerStore';
+import { useAuthStore } from './store/authStore';
 import './App.css';
 
 type AppScreen = 'MENU' | 'SP_SETUP' | 'MP_LOBBY' | 'GAME';
 
 function App() {
   const { phase, addPlayer, addCpuPlayers, startGame, players, quitToMenu, winner, settings, updateSettings } = useGameStore();
-  const { mpPhase, leaveRoom } = useMultiplayerStore();
+  const { mpPhase, leaveRoom, myPlayerId } = useMultiplayerStore();
+  const { unlockCreature } = useAuthStore();
   const [screen, setScreen] = useState<AppScreen>('MENU');
   const [playerName, setPlayerName] = useState('');
   const [cpuCount, setCpuCount] = useState(1);
+
+  // Initialize auth session
+  useEffect(() => {
+    useAuthStore.getState().initialize();
+  }, []);
+
+  // Track captures and evolutions for Creaturedex unlocks
+  useEffect(() => {
+    if (players.length === 0) return;
+
+    let targetPlayers: Player[] = [];
+    if (mpPhase === 'PLAYING' || mpPhase === 'DISCONNECTED') {
+      if (myPlayerId) {
+        const me = players.find(p => p.id === myPlayerId);
+        if (me) targetPlayers = [me];
+      }
+    } else {
+      targetPlayers = players.filter(p => !p.isCpu);
+    }
+
+    for (const player of targetPlayers) {
+      const allCreatures = [...player.party, ...player.storage];
+      for (const c of allCreatures) {
+        unlockCreature(c.speciesId, c.currentStage as 0 | 1 | 2);
+      }
+    }
+  }, [players, mpPhase, myPlayerId, unlockCreature]);
 
   // Multiplayer playing — let the server drive the game state
   if (mpPhase === 'PLAYING' || mpPhase === 'DISCONNECTED') {
@@ -164,7 +194,7 @@ function App() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
             <div style={{ textAlign: 'left' }}>
               <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Tax Pot</div>
               <div style={{ color: '#64748b', fontSize: '0.72rem' }}>Tax payments accumulate; landing player collects the pot</div>
@@ -175,6 +205,34 @@ function App() {
               style={{ padding: '4px 14px', fontSize: '0.85rem', background: settings.taxPot ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}
             >
               {settings.taxPot ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.6rem' }}>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Random Creature Tiles</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem' }}>Randomizes species & renames tiles per board type group</div>
+            </div>
+            <button
+              className="btn-primary"
+              onClick={() => updateSettings({ randomCreatureTiles: !settings.randomCreatureTiles })}
+              style={{ padding: '4px 14px', fontSize: '0.85rem', background: settings.randomCreatureTiles ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}
+            >
+              {settings.randomCreatureTiles ? 'ON' : 'OFF'}
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ color: '#ccc', fontSize: '0.9rem' }}>Expanded Creature Types</div>
+              <div style={{ color: '#64748b', fontSize: '0.72rem' }}>Adds non-board & dual-type creatures to wild encounter pool</div>
+            </div>
+            <button
+              className="btn-primary"
+              onClick={() => updateSettings({ expandedCreatureTypes: !settings.expandedCreatureTypes })}
+              style={{ padding: '4px 14px', fontSize: '0.85rem', background: settings.expandedCreatureTypes ? '#22c55e' : '#334155', flexShrink: 0, marginLeft: '0.5rem' }}
+            >
+              {settings.expandedCreatureTypes ? 'ON' : 'OFF'}
             </button>
           </div>
         </div>

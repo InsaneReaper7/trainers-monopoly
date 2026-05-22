@@ -31,8 +31,15 @@ export const CreatureDetailsModal: React.FC<Props> = ({ creature, onClose }) => 
         <div className="details-content">
           <div className="details-image-container">
             <img src={`/assets/creatures/${creature.speciesId}.png`} alt={form.name} />
-            <div className="type-badge" style={{ backgroundColor: getTypeColor(form.type) }}>
-              {form.type}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', width: '100%', alignItems: 'center' }}>
+              <div className="type-badge" style={{ backgroundColor: getTypeColor(form.type), textAlign: 'center', width: '100%' }}>
+                {form.type}
+              </div>
+              {form.secondaryType && (
+                <div className="type-badge" style={{ backgroundColor: getTypeColor(form.secondaryType), textAlign: 'center', width: '100%' }}>
+                  {form.secondaryType}
+                </div>
+              )}
             </div>
           </div>
 
@@ -73,16 +80,27 @@ export const CreatureDetailsModal: React.FC<Props> = ({ creature, onClose }) => 
   );
 };
 
+const TYPE_COLORS: Record<string, string> = {
+  normal: '#A8A77A',
+  fire: '#EE8130',
+  water: '#6390F0',
+  electric: '#F7D02C',
+  grass: '#7AC74C',
+  ice: '#96D9D6',
+  fighting: '#C22E28',
+  poison: '#A33EA1',
+  ground: '#E2BF65',
+  flying: '#A98FF3',
+  psychic: '#F95587',
+  bug: '#A6B91A',
+  rock: '#B6A136',
+  ghost: '#735797',
+  dragon: '#6F35FC',
+  dark: '#705746',
+  steel: '#B7B7CE',
+  fairy: '#D685AD'
+};
+
 function getTypeColor(type: string): string {
-  switch (type.toLowerCase()) {
-    case 'fire': return '#ef4444';
-    case 'water': return '#3b82f6';
-    case 'plant': return '#22c55e';
-    case 'electric': return '#eab308';
-    case 'earth': return '#d97706';
-    case 'air': return '#9ca3af';
-    case 'ghost': return '#7c3aed';
-    case 'legendary': return '#ec4899';
-    default: return '#6b7280';
-  }
+  return TYPE_COLORS[type.toLowerCase()] || '#6b7280';
 }
