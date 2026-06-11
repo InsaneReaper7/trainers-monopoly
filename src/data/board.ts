@@ -62,8 +62,8 @@ export const BOARD_SPACES: BoardSpace[] = [
   { index: 24, name: 'Psyhorn Tile 3', type: 'Creature', speciesId: 'psyhorn', groupId: 'red' },
   { index: 25, name: 'Gym 5 - Sludge', type: 'Gym', gymTier: 5, gymElement: 'Poison' },
   { index: 26, name: 'Shadowrak Tile 1', type: 'Creature', speciesId: 'shadowrak', groupId: 'yellow' },
-  { index: 27, name: 'Shadowrak Tile 2', type: 'Creature', speciesId: 'shadowrak', groupId: 'yellow' },
-  { index: 28, name: 'Wild Encounter', type: 'Wild' },
+  { index: 27, name: 'Wild Encounter', type: 'Wild' },
+  { index: 28, name: 'Shadowrak Tile 2', type: 'Creature', speciesId: 'shadowrak', groupId: 'yellow' },
   { index: 29, name: 'Gym 6 - Mind', type: 'Gym', gymTier: 6, gymElement: 'Psychic' },
 
   // CORNER
