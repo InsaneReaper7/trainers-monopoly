@@ -13,16 +13,16 @@ export const GROUP_HOUSE_COST: Record<string, number> = {
   darkBlue: 200,
 };
 
-// Additional rent gained per power-up tier (Rebalanced to follow Monopoly house rent progression style)
+// Additional rent gained per power-up tier (Reverted to original, only darkBlue reduced by 25%)
 export const GROUP_RENT_PER_TIER: Record<string, number> = {
-  brown:    10,  // T5 = +50 rent
-  lightBlue: 15,  // T5 = +75 rent
-  pink:    20,  // T5 = +100 rent
-  orange:  25,  // T5 = +125 rent
-  red:     30,  // T5 = +150 rent
-  yellow:  35,  // T5 = +175 rent
-  green:   40,  // T5 = +200 rent
-  darkBlue: 50,  // T5 = +250 rent
+  brown:    50,
+  lightBlue: 50,
+  pink:    100,
+  orange:  100,
+  red:     150,
+  yellow:  150,
+  green:   200,
+  darkBlue: 190, // 250 - 25% = 187.5 -> 190 TP
 };
 
 export const BOARD_SPACES: BoardSpace[] = [
