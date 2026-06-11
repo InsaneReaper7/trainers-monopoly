@@ -133,7 +133,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'green',
     tier: 'Rare',
     captureCost: 300,
-    baseRent: 300,
+    baseRent: 260,
     baseForm: { name: 'Glacieon', stage: 0, type: 'Ice', stats: { hp: 54, atk: 15, def: 12, spd: 10 } },
     stage1Form: { name: 'Frostbite', stage: 1, type: 'Ice', stats: { hp: 64, atk: 19, def: 16, spd: 14 } },
     stage2Form: { name: 'Avalanche', stage: 2, type: 'Ice', stats: { hp: 74, atk: 25, def: 21, spd: 19 } }
@@ -143,7 +143,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'green',
     tier: 'Rare',
     captureCost: 300,
-    baseRent: 300,
+    baseRent: 260,
     baseForm: { name: 'Frosbeast', stage: 0, type: 'Ice', stats: { hp: 52, atk: 16, def: 11, spd: 11 } },
     stage1Form: { name: 'Glaciersledge', stage: 1, type: 'Ice', stats: { hp: 62, atk: 20, def: 15, spd: 15 } },
     stage2Form: { name: 'Frostcolossus', stage: 2, type: 'Ice', stats: { hp: 72, atk: 26, def: 20, spd: 20 } }
@@ -155,7 +155,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'darkBlue',
     tier: 'Rare',
     captureCost: 400,
-    baseRent: 340, // 450 - 25% = 337.5 -> 340 TP
+    baseRent: 300,
     baseForm: { name: 'Dracoveil', stage: 0, type: 'Dragon', stats: { hp: 58, atk: 16, def: 12, spd: 12 } },
     stage1Form: { name: 'Wyrmshadow', stage: 1, type: 'Dragon', stats: { hp: 68, atk: 21, def: 17, spd: 16 } }
   },
@@ -164,7 +164,7 @@ export const CREATURES: Record<string, CreatureSpecies> = {
     groupId: 'darkBlue',
     tier: 'Rare',
     captureCost: 400,
-    baseRent: 340, // 450 - 25% = 337.5 -> 340 TP
+    baseRent: 300,
     baseForm: { name: 'Wyrmlet', stage: 0, type: 'Dragon', stats: { hp: 60, atk: 17, def: 13, spd: 11 } },
     stage1Form: { name: 'Drakesoul', stage: 1, type: 'Dragon', stats: { hp: 70, atk: 22, def: 18, spd: 15 } }
   },

@@ -13,7 +13,7 @@ export const GROUP_HOUSE_COST: Record<string, number> = {
   darkBlue: 200,
 };
 
-// Additional rent gained per power-up tier (Reverted to original, only darkBlue reduced by 25%)
+// Additional rent gained per power-up tier (Reverted to original)
 export const GROUP_RENT_PER_TIER: Record<string, number> = {
   brown:    50,
   lightBlue: 50,
@@ -22,7 +22,7 @@ export const GROUP_RENT_PER_TIER: Record<string, number> = {
   red:     150,
   yellow:  150,
   green:   200,
-  darkBlue: 190, // 250 - 25% = 187.5 -> 190 TP
+  darkBlue: 250,
 };
 
 export const BOARD_SPACES: BoardSpace[] = [
