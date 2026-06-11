@@ -6,9 +6,10 @@ import './MainMenu.css';
 interface MainMenuProps {
   onStartSinglePlayer: () => void;
   onStartMultiplayer: () => void;
+  onStartCampaign: () => void;
 }
 
-export const MainMenu: React.FC<MainMenuProps> = ({ onStartSinglePlayer, onStartMultiplayer }) => {
+export const MainMenu: React.FC<MainMenuProps> = ({ onStartSinglePlayer, onStartMultiplayer, onStartCampaign }) => {
   const { user, login, register, logout, error, loading } = useAuthStore();
   const [isDexOpen, setIsDexOpen] = useState(false);
   
@@ -138,8 +139,8 @@ export const MainMenu: React.FC<MainMenuProps> = ({ onStartSinglePlayer, onStart
         <p className="subtitle">Capture. Battle. Dominate.</p>
 
         <div className="menu-buttons">
-          <button className="btn-primary menu-btn disabled campaign-btn" disabled>
-            <span className="btn-icon">🗺️</span> Campaign (Coming Soon)
+          <button className="btn-primary menu-btn campaign-btn" onClick={onStartCampaign}>
+            <span className="btn-icon">🗺️</span> Campaign Mode
           </button>
           
           <button className="btn-primary menu-btn" onClick={onStartSinglePlayer}>

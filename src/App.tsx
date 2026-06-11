@@ -12,17 +12,20 @@ import { useGameStore } from './store/gameStore';
 import type { Player } from './store/gameStore';
 import { useMultiplayerStore } from './multiplayer/multiplayerStore';
 import { useAuthStore } from './store/authStore';
+import { CampaignSelectModal } from './components/CampaignSelectModal';
+import { AdBanner } from './components/AdBanner';
 import './App.css';
 
 type AppScreen = 'MENU' | 'SP_SETUP' | 'MP_LOBBY' | 'GAME';
 
 function App() {
-  const { phase, addPlayer, addCpuPlayers, startGame, players, quitToMenu, winner, settings, updateSettings } = useGameStore();
+  const { phase, addPlayer, addCpuPlayers, startGame, startCampaignGame, players, quitToMenu, winner, settings, updateSettings } = useGameStore();
   const { mpPhase, leaveRoom, myPlayerId } = useMultiplayerStore();
   const { unlockCreature } = useAuthStore();
   const [screen, setScreen] = useState<AppScreen>('MENU');
   const [playerName, setPlayerName] = useState('');
   const [cpuCount, setCpuCount] = useState(1);
+  const [isCampaignSelectOpen, setIsCampaignSelectOpen] = useState(false);
 
   // Initialize auth session
   useEffect(() => {
@@ -54,7 +57,7 @@ function App() {
   // Multiplayer playing — let the server drive the game state
   if (mpPhase === 'PLAYING' || mpPhase === 'DISCONNECTED') {
     return (
-      <div style={{ display: 'flex', width: '100vw', justifyContent: 'center', padding: '2rem', position: 'relative', gap: '2rem' }}>
+      <div style={{ display: 'flex', width: '100vw', justifyContent: 'center', alignItems: 'center', padding: '2rem', position: 'relative', gap: '2rem' }}>
         <button
           className="btn-primary"
           onClick={() => { leaveRoom(); setScreen('MENU'); }}
@@ -62,8 +65,22 @@ function App() {
         >
           Quit to Main Menu
         </button>
-        <Board />
-        <PlayerDashboard />
+
+        {/* Left Sidebar Ad */}
+        <AdBanner type="vertical" fallbackText="Beast Tycoon - Capture Them All!" />
+
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+            <Board />
+            <PlayerDashboard />
+          </div>
+          {/* Bottom Horizontal Ad */}
+          <AdBanner type="horizontal" fallbackText="Sponsor: Play Online Multiplayer Now!" />
+        </div>
+
+        {/* Right Sidebar Ad */}
+        <AdBanner type="vertical" fallbackText="Upgrade Your Sanctums Today!" />
+
         <TradeModal />
         <StorageModal />
         <TileInfoModal />
@@ -102,13 +119,25 @@ function App() {
   // Main menu
   if (screen === 'MENU' || phase === 'MENU') {
     return (
-      <MainMenu
-        onStartSinglePlayer={() => {
-          useGameStore.setState({ phase: 'SETUP' });
-          setScreen('SP_SETUP');
-        }}
-        onStartMultiplayer={() => setScreen('MP_LOBBY')}
-      />
+      <>
+        <MainMenu
+          onStartSinglePlayer={() => {
+            useGameStore.setState({ phase: 'SETUP' });
+            setScreen('SP_SETUP');
+          }}
+          onStartMultiplayer={() => setScreen('MP_LOBBY')}
+          onStartCampaign={() => setIsCampaignSelectOpen(true)}
+        />
+        <CampaignSelectModal
+          isOpen={isCampaignSelectOpen}
+          onClose={() => setIsCampaignSelectOpen(false)}
+          onStartCampaignGame={(chapter) => {
+            const savedName = localStorage.getItem('trainers_monopoly_trainer_name') || 'Red';
+            startCampaignGame(chapter, savedName);
+            setScreen('GAME');
+          }}
+        />
+      </>
     );
   }
 
@@ -260,7 +289,7 @@ function App() {
 
   // In-game (single player)
   return (
-    <div style={{ display: 'flex', width: '100vw', justifyContent: 'center', padding: '2rem', position: 'relative', gap: '2rem' }}>
+    <div style={{ display: 'flex', width: '100vw', justifyContent: 'center', alignItems: 'center', padding: '2rem', position: 'relative', gap: '2rem' }}>
       <button
         className="btn-primary"
         onClick={() => { quitToMenu(); setScreen('MENU'); }}
@@ -268,8 +297,22 @@ function App() {
       >
         Quit to Main Menu
       </button>
-      <Board />
-      <PlayerDashboard />
+
+      {/* Left Sidebar Ad */}
+      <AdBanner type="vertical" fallbackText="Beast Tycoon - Capture Them All!" />
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.5rem' }}>
+        <div style={{ display: 'flex', gap: '2rem', alignItems: 'flex-start' }}>
+          <Board />
+          <PlayerDashboard />
+        </div>
+        {/* Bottom Horizontal Ad */}
+        <AdBanner type="horizontal" fallbackText="Sponsor: Play Online Multiplayer Now!" />
+      </div>
+
+      {/* Right Sidebar Ad */}
+      <AdBanner type="vertical" fallbackText="Upgrade Your Sanctums Today!" />
+
       <TradeModal />
       <StorageModal />
       <TileInfoModal />

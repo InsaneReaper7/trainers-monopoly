@@ -1,0 +1,106 @@
+.ad-banner-vertical {
+  width: 160px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ad-banner-horizontal {
+  width: 728px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1.5rem;
+  background: rgba(15, 23, 42, 0.4);
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ad-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.7;
+}
+
+.ad-mock-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.ad-mock-art-icon {
+  font-size: 2rem;
+  animation: bounceSlow 3s infinite ease-in-out;
+}
+
+.ad-mock-art-text {
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.8rem;
+  color: #fbbf24;
+  line-height: 1.2;
+}
+
+.ad-mock-art-desc {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.ad-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.ad-btn:hover {
+  background: #fbbf24;
+  color: #000;
+  border-color: #fbbf24;
+  font-weight: 600;
+}
+
+.ad-banner-horizontal .ad-mock-art {
+  flex-direction: row;
+  justify-content: center;
+  gap: 1.5rem;
+  width: auto;
+}
+
+.ad-banner-horizontal .ad-mock-art-icon {
+  font-size: 1.5rem;
+}
+
+.ad-banner-horizontal .ad-btn {
+  width: auto;
+}
+
+@keyframes bounceSlow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}

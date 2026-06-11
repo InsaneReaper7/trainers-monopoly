@@ -11,67 +11,67 @@ export interface GymLeader {
 export const GYM_LEADERS: Record<number, GymLeader> = {
   1: {
     tier: 1,
-    name: 'Brock (Boulder)',
+    name: 'Rocky (Granite)',
     element: 'Rock',
-    badgeReward: 'Boulder Badge',
-    creature: { name: 'Geodude', stage: 0, type: 'Rock', stats: { hp: 45, atk: 15, def: 20, spd: 5 } }
+    badgeReward: 'Granite Badge',
+    creature: { name: 'Pebbleton', stage: 0, type: 'Rock', stats: { hp: 50, atk: 14, def: 18, spd: 5 } }
   },
   2: {
     tier: 2,
-    name: 'Misty (Cascade)',
+    name: 'Marina (Wave)',
     element: 'Water',
-    badgeReward: 'Cascade Badge',
-    creature: { name: 'Starmie', stage: 1, type: 'Water', stats: { hp: 55, atk: 20, def: 18, spd: 22 } }
+    badgeReward: 'Wave Badge',
+    creature: { name: 'Aquastream', stage: 1, type: 'Water', stats: { hp: 60, atk: 20, def: 16, spd: 18 } }
   },
   3: {
     tier: 3,
-    name: 'Surge (Thunder)',
+    name: 'Sparky (Volt)',
     element: 'Electric',
-    badgeReward: 'Thunder Badge',
-    creature: { name: 'Raichu', stage: 1, type: 'Electric', stats: { hp: 60, atk: 25, def: 15, spd: 25 } }
+    badgeReward: 'Volt Badge',
+    creature: { name: 'Thunderfang', stage: 1, type: 'Electric', stats: { hp: 65, atk: 24, def: 14, spd: 22 } }
   },
   4: {
     tier: 4,
-    name: 'Erika (Rainbow)',
+    name: 'Flora (Bloom)',
     element: 'Grass',
-    badgeReward: 'Rainbow Badge',
-    creature: { name: 'Vileplume', stage: 2, type: 'Grass', stats: { hp: 70, atk: 22, def: 22, spd: 15 } }
+    badgeReward: 'Bloom Badge',
+    creature: { name: 'Solarvine', stage: 2, type: 'Grass', stats: { hp: 75, atk: 26, def: 22, spd: 15 } }
   },
   5: {
     tier: 5,
-    name: 'Koga (Soul)',
+    name: 'Toxa (Sludge)',
     element: 'Poison',
-    badgeReward: 'Soul Badge',
-    creature: { name: 'Weezing', stage: 1, type: 'Poison', stats: { hp: 80, atk: 25, def: 30, spd: 18 } }
+    badgeReward: 'Sludge Badge',
+    creature: { name: 'Oozemonster', stage: 1, type: 'Poison', stats: { hp: 85, atk: 25, def: 28, spd: 14 } }
   },
   6: {
     tier: 6,
-    name: 'Sabrina (Marsh)', // Swapped badge names technically but following GDD structure
+    name: 'Mentis (Mind)',
     element: 'Psychic',
-    badgeReward: 'Marsh Badge',
-    creature: { name: 'Alakazam', stage: 2, type: 'Psychic', stats: { hp: 70, atk: 35, def: 15, spd: 35 } }
+    badgeReward: 'Mind Badge',
+    creature: { name: 'Psyclopse', stage: 2, type: 'Psychic', stats: { hp: 80, atk: 32, def: 18, spd: 28 } }
   },
   7: {
     tier: 7,
-    name: 'Blaine (Volcano)',
+    name: 'Ignis (Flare)',
     element: 'Fire',
-    badgeReward: 'Volcano Badge',
-    creature: { name: 'Arcanine', stage: 1, type: 'Fire', stats: { hp: 90, atk: 32, def: 22, spd: 30 } }
+    badgeReward: 'Flare Badge',
+    creature: { name: 'Infernawl', stage: 1, type: 'Fire', stats: { hp: 90, atk: 34, def: 20, spd: 25 } }
   },
   8: {
     tier: 8,
-    name: 'Giovanni (Earth)',
+    name: 'Terra (Seismic)',
     element: 'Ground',
-    badgeReward: 'Earth Badge',
-    creature: { name: 'Rhydon', stage: 1, type: 'Ground', stats: { hp: 100, atk: 35, def: 35, spd: 15 } }
+    badgeReward: 'Seismic Badge',
+    creature: { name: 'Terraking', stage: 1, type: 'Ground', stats: { hp: 105, atk: 36, def: 32, spd: 16 } }
   }
 };
 
 export const CHAMPION = {
-  name: 'Champion Lance',
+  name: 'Champion Alden',
   party: [
-    { name: 'Alakazam', stage: 2, type: 'Psychic', stats: { hp: 120, atk: 45, def: 30, spd: 50 } },
-    { name: 'Dragonite', stage: 2, type: 'Dragon', stats: { hp: 150, atk: 50, def: 40, spd: 40 } },
-    { name: 'Metagross', stage: 2, type: 'Steel', stats: { hp: 140, atk: 48, def: 55, spd: 30 } }
+    { name: 'Psyclopse', stage: 2, type: 'Psychic', stats: { hp: 120, atk: 40, def: 25, spd: 40 } },
+    { name: 'Wyrmshadow', stage: 1, type: 'Dragon', stats: { hp: 135, atk: 45, def: 35, spd: 38 } },
+    { name: 'Titanox', stage: 2, type: 'Steel', stats: { hp: 150, atk: 48, def: 50, spd: 25 } }
   ] as CreatureForm[]
 };

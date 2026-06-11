@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ActiveCreature, CreatureForm, BoardSpace, ElementType } from '../types';
-import { BOARD_SPACES, GROUP_HOUSE_COST, GROUP_RENT_PER_TIER, generateBoard } from '../data/board';
+import { BOARD_SPACES, GROUP_HOUSE_COST, GROUP_RENT_PER_TIER, generateBoard, generateCampaignBoard, CAMPAIGN_CHAPTERS } from '../data/board';
 import { CREATURES } from '../data/creatures';
 import { GYM_LEADERS, CHAMPION } from '../data/gyms';
 import { calculateDamage } from '../utils/combat';
@@ -68,6 +68,10 @@ interface GameState {
   board: BoardSpace[];
   settings: { startingTp: 500 | 1000 | 1500; taxPot: boolean; randomCreatureTiles: boolean; expandedCreatureTypes: boolean };
   taxPotBalance: Record<number, number>;
+  campaignActive: boolean;
+  campaignChapter: number;
+  campaignGoalText: string;
+  campaignUnlockedChapters: number[];
   updateSettings: (s: Partial<GameState['settings']>) => void;
 
   // Actions
@@ -81,6 +85,7 @@ interface GameState {
   rollForTurnOrder: () => void;
   quitToMenu: () => void;
   startGame: () => void;
+  startCampaignGame: (chapter: number, playerName: string) => void;
   rollDice: () => void;
   endTurn: () => void;
   
@@ -150,27 +155,122 @@ const applyExp = (c: ActiveCreature, expGain: number): ActiveCreature => {
   return { ...c, exp: newExp, level: newLevel, stats: newStats, currentHp: newHp };
 };
 
-export const useGameStore = create<GameState>((set, get) => ({
-  players: [],
-  currentPlayerIndex: 0,
-  phase: 'MENU',
-  dice: [1, 1],
-  boardOwnership: {},
-  battleState: null,
-  tradeState: null,
-  wildEncounter: null,
-  storageModalOpen: false,
-  selectedTileIndex: null,
-  rolledDoubles: false,
-  pendingGymChallenge: false,
-  cardMessage: null,
-  gameLogs: [],
-  winner: null,
-  turnOrderRolls: {},
-  turnOrderPending: [],
-  board: BOARD_SPACES,
-  settings: { startingTp: 1500, taxPot: false, randomCreatureTiles: false, expandedCreatureTypes: false },
-  taxPotBalance: {},
+const checkCampaignVictory = (state: any) => {
+  if (!state.campaignActive || state.phase === 'GAME_OVER') return null;
+  
+  const human = state.players?.find((p: any) => !p.isCpu);
+  if (!human) return null;
+
+  let won = false;
+  let logMsg = '';
+
+  if (state.campaignChapter === 1) {
+    // Goal: Own all Brown and Light Blue properties, or bankrupt rivals
+    const brownSpaces = state.board?.filter((s: any) => s.groupId === 'brown' && s.type === 'Creature') || [];
+    const lightBlueSpaces = state.board?.filter((s: any) => s.groupId === 'lightBlue' && s.type === 'Creature') || [];
+    const ownsAllBrown = brownSpaces.length > 0 && brownSpaces.every((s: any) => state.boardOwnership?.[s.index]?.ownerId === human.id);
+    const ownsAllLightBlue = lightBlueSpaces.length > 0 && lightBlueSpaces.every((s: any) => state.boardOwnership?.[s.index]?.ownerId === human.id);
+    const rivalsActive = state.players?.filter((p: any) => p.isCpu && !p.isBankrupt).length;
+    
+    if ((ownsAllBrown && ownsAllLightBlue) || rivalsActive === 0) {
+      won = true;
+      logMsg = `${human.name} conquered the Molten Caverns by owning all Brown & Light Blue properties!`;
+    }
+  } else if (state.campaignChapter === 2) {
+    // Goal: Earn 3000 TP
+    if (human.tp >= 3000) {
+      won = true;
+      logMsg = `${human.name} accumulated 3,000 TP and powered up the woodland beacon!`;
+    }
+  } else if (state.campaignChapter === 3) {
+    // Goal: Earn 4 Gym Badges
+    if (human.badges?.length >= 4) {
+      won = true;
+      logMsg = `${human.name} earned 4 Gym Badges and cleared the mountain path!`;
+    }
+  } else if (state.campaignChapter === 4) {
+    // Goal: Defeat Champion Alden
+    if (state.winner === human.name) {
+      won = true;
+      logMsg = `${human.name} defeated Champion Alden and conquered the Sky Shrine!`;
+    }
+  }
+
+  if (won) {
+    // Save progress to localStorage
+    const nextChapter = state.campaignChapter + 1;
+    const unlockedStr = localStorage.getItem('trainers_monopoly_unlocked_chapters');
+    let unlocked = [1];
+    if (unlockedStr) {
+      try {
+        unlocked = JSON.parse(unlockedStr);
+      } catch (e) {}
+    }
+    if (!unlocked.includes(nextChapter) && nextChapter <= 4) {
+      unlocked.push(nextChapter);
+      localStorage.setItem('trainers_monopoly_unlocked_chapters', JSON.stringify(unlocked));
+    }
+
+    return {
+      phase: 'GAME_OVER',
+      winner: human.name,
+      gameLogs: [...state.gameLogs, `🎉 CAMPAIGN VICTORY!`, logMsg],
+      campaignUnlockedChapters: unlocked
+    };
+  }
+
+  return null;
+};
+
+export const useGameStore = create<GameState>((originalSet, get) => {
+  const set = (
+    partial: GameState | Partial<GameState> | ((state: GameState) => GameState | Partial<GameState>),
+    replace?: boolean
+  ) => {
+    originalSet((state: GameState) => {
+      const nextState = typeof partial === 'function' ? (partial as Function)(state) : partial;
+      const mergedState = { ...state, ...nextState };
+      const victoryUpdate = checkCampaignVictory(mergedState);
+      if (victoryUpdate) {
+        return { ...nextState, ...victoryUpdate };
+      }
+      return nextState;
+    }, replace as any);
+  };
+
+  return {
+    players: [],
+    currentPlayerIndex: 0,
+    phase: 'MENU',
+    dice: [1, 1],
+    boardOwnership: {},
+    battleState: null,
+    tradeState: null,
+    wildEncounter: null,
+    storageModalOpen: false,
+    selectedTileIndex: null,
+    rolledDoubles: false,
+    pendingGymChallenge: false,
+    cardMessage: null,
+    gameLogs: [],
+    winner: null,
+    turnOrderRolls: {},
+    turnOrderPending: [],
+    board: BOARD_SPACES,
+    settings: { startingTp: 1500, taxPot: false, randomCreatureTiles: false, expandedCreatureTypes: false },
+    taxPotBalance: {},
+    campaignActive: false,
+    campaignChapter: 1,
+    campaignGoalText: '',
+    campaignUnlockedChapters: (() => {
+      const unlockedStr = localStorage.getItem('trainers_monopoly_unlocked_chapters');
+      if (unlockedStr) {
+        try {
+          return JSON.parse(unlockedStr);
+        } catch (e) {}
+      }
+      return [1];
+    })(),
 
   updateSettings: (s) => set(state => ({ settings: { ...state.settings, ...s } })),
 
@@ -408,6 +508,74 @@ export const useGameStore = create<GameState>((set, get) => ({
       taxPotBalance,
       board: generatedBoard,
       gameLogs: ['Everyone rolls to determine who goes first!'],
+      campaignActive: false
+    };
+  }),
+
+  startCampaignGame: (chapter, playerName) => set(() => {
+    const chapterConfig = CAMPAIGN_CHAPTERS.find(c => c.chapter === chapter) || CAMPAIGN_CHAPTERS[0];
+    const generatedBoard = generateCampaignBoard(chapter);
+    
+    const human: Player = {
+      id: generateId(),
+      name: playerName || 'Trainer',
+      tp: chapterConfig.startingTp,
+      position: 0,
+      party: [],
+      storage: [],
+      badges: [],
+      inJail: false,
+      jailTurns: 0,
+      color: '#3b82f6',
+      isCpu: false,
+      isBankrupt: false,
+      consecutiveDoubles: 0,
+      inAdventure: false
+    };
+
+    const cpus: Player[] = chapterConfig.opponents.map(o => ({
+      id: generateId(),
+      name: o.name,
+      tp: chapterConfig.startingTp,
+      position: 0,
+      party: [],
+      storage: [],
+      badges: [],
+      inJail: false,
+      jailTurns: 0,
+      color: o.color,
+      isCpu: true,
+      isBankrupt: false,
+      consecutiveDoubles: 0,
+      inAdventure: false
+    }));
+
+    const players = [human, ...cpus];
+    
+    const taxPotBalance: Record<number, number> = {};
+    generatedBoard.filter(s => s.type === 'Tax').forEach(s => { taxPotBalance[s.index] = 0; });
+
+    return {
+      players,
+      phase: 'ROLL',
+      currentPlayerIndex: 0,
+      boardOwnership: {},
+      battleState: null,
+      tradeState: null,
+      wildEncounter: null,
+      winner: null,
+      turnOrderRolls: {},
+      turnOrderPending: [],
+      taxPotBalance,
+      board: generatedBoard,
+      campaignActive: true,
+      campaignChapter: chapter,
+      campaignGoalText: chapterConfig.goal,
+      gameLogs: [
+        `🗺️ Chapter ${chapter}: ${chapterConfig.title} initiated!`,
+        `🎯 Goal: ${chapterConfig.goal}`,
+        `🎲 Your turn! Roll the dice.`
+      ]
     };
   }),
 
@@ -1694,4 +1862,5 @@ export const useGameStore = create<GameState>((set, get) => ({
       }, 1000);
     }
   }
-}));
+  };
+});

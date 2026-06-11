@@ -1,4 +1,5 @@
 import type { BoardSpace } from '../types';
+import { CREATURES } from './creatures';
 
 // TP cost per house upgrade (per tile in the group)
 export const GROUP_HOUSE_COST: Record<string, number> = {
@@ -12,75 +13,73 @@ export const GROUP_HOUSE_COST: Record<string, number> = {
   darkBlue: 200,
 };
 
-// Additional rent gained per power-up tier
+// Additional rent gained per power-up tier (Rebalanced to follow Monopoly house rent progression style)
 export const GROUP_RENT_PER_TIER: Record<string, number> = {
-  brown:    50,
-  lightBlue: 50,
-  pink:    100,
-  orange:  100,
-  red:     150,
-  yellow:  150,
-  green:   200,
-  darkBlue: 250,
+  brown:    10,  // T5 = +50 rent
+  lightBlue: 15,  // T5 = +75 rent
+  pink:    20,  // T5 = +100 rent
+  orange:  25,  // T5 = +125 rent
+  red:     30,  // T5 = +150 rent
+  yellow:  35,  // T5 = +175 rent
+  green:   40,  // T5 = +200 rent
+  darkBlue: 50,  // T5 = +250 rent
 };
 
 export const BOARD_SPACES: BoardSpace[] = [
-  // SIDE 1 (Bottom row conceptually, left to right 0-10)
+  // SIDE 1 (Bottom row, left to right 0-10)
   { index: 0, name: 'Healing Center', type: 'Start' },
-  { index: 1, name: 'Terravore Tile 1', type: 'Creature', speciesId: 'terravore', groupId: 'brown' },
+  { index: 1, name: 'Terravore Burrow', type: 'Creature', speciesId: 'terravore', groupId: 'brown' },
   { index: 2, name: 'Trainer\'s Journal', type: 'Event', eventDeck: 'Journal' },
-  { index: 3, name: 'Terravore Tile 2', type: 'Creature', speciesId: 'terravore', groupId: 'brown' },
+  { index: 3, name: 'Digmole Tunnel', type: 'Creature', speciesId: 'digmole', groupId: 'brown' },
   { index: 4, name: 'Creature License Fee', type: 'Tax', taxAmount: 100 },
-  { index: 5, name: 'Gym 1 - Boulder', type: 'Gym', gymTier: 1, gymElement: 'Rock' },
-  { index: 6, name: 'Pyrowl Tile 1', type: 'Creature', speciesId: 'pyrowl', groupId: 'lightBlue' },
+  { index: 5, name: 'Gym 1 - Granite', type: 'Gym', gymTier: 1, gymElement: 'Rock' },
+  { index: 6, name: 'Pyrowl Ash-Vent', type: 'Creature', speciesId: 'pyrowl', groupId: 'lightBlue' },
   { index: 7, name: 'Scout Report', type: 'Event', eventDeck: 'Scout' },
-  { index: 8, name: 'Pyrowl Tile 2', type: 'Creature', speciesId: 'pyrowl', groupId: 'lightBlue' },
-  { index: 9, name: 'Gym 2 - Cascade', type: 'Gym', gymTier: 2, gymElement: 'Water' }, // Using Gym instead of 3rd Pyrowl to fit 8 gyms
+  { index: 8, name: 'Pyroshell Crater', type: 'Creature', speciesId: 'pyroshell', groupId: 'lightBlue' },
+  { index: 9, name: 'Gym 2 - Wave', type: 'Gym', gymTier: 2, gymElement: 'Water' },
   
   // CORNER
   { index: 10, name: 'Just Adventuring', type: 'Corner' },
 
-  // SIDE 2 (Left column conceptually, bottom to top 11-19)
-  { index: 11, name: 'Lumibulb Tile 1', type: 'Creature', speciesId: 'lumibulb', groupId: 'pink' },
+  // SIDE 2 (Left column, bottom to top 11-19)
+  { index: 11, name: 'Lumibulb Meadow', type: 'Creature', speciesId: 'lumibulb', groupId: 'pink' },
   { index: 12, name: 'Wild Encounter', type: 'Wild' },
-  { index: 13, name: 'Lumibulb Tile 2', type: 'Creature', speciesId: 'lumibulb', groupId: 'pink' },
-  { index: 14, name: 'Lumibulb Tile 3', type: 'Creature', speciesId: 'lumibulb', groupId: 'pink' },
-  { index: 15, name: 'Gym 3 - Thunder', type: 'Gym', gymTier: 3, gymElement: 'Electric' },
-  { index: 16, name: 'Voltpaw Tile 1', type: 'Creature', speciesId: 'voltpaw', groupId: 'orange' },
+  { index: 13, name: 'Leafawn Glade', type: 'Creature', speciesId: 'leafawn', groupId: 'pink' },
+  { index: 14, name: 'Elderbloom Grove', type: 'Creature', speciesId: 'leafawn', groupId: 'pink' },
+  { index: 15, name: 'Gym 3 - Volt', type: 'Gym', gymTier: 3, gymElement: 'Electric' },
+  { index: 16, name: 'Voltpaw Outpost', type: 'Creature', speciesId: 'voltpaw', groupId: 'orange' },
   { index: 17, name: 'Trainer\'s Journal', type: 'Event', eventDeck: 'Journal' },
-  { index: 18, name: 'Voltpaw Tile 2', type: 'Creature', speciesId: 'voltpaw', groupId: 'orange' },
-  { index: 19, name: 'Gym 4 - Rainbow', type: 'Gym', gymTier: 4, gymElement: 'Grass' },
+  { index: 18, name: 'Sparkitten Alley', type: 'Creature', speciesId: 'sparkitten', groupId: 'orange' },
+  { index: 19, name: 'Gym 4 - Bloom', type: 'Gym', gymTier: 4, gymElement: 'Grass' },
   
   // CORNER
   { index: 20, name: 'Champion\'s Arena', type: 'Corner' },
 
-  // SIDE 3 (Top row conceptually, right to left 21-29)
-  { index: 21, name: 'Psyhorn Tile 1', type: 'Creature', speciesId: 'psyhorn', groupId: 'red' },
+  // SIDE 3 (Top row, right to left 21-29)
+  { index: 21, name: 'Psyhorn Sanctuary', type: 'Creature', speciesId: 'psyhorn', groupId: 'red' },
   { index: 22, name: 'Scout Report', type: 'Event', eventDeck: 'Scout' },
-  { index: 23, name: 'Psyhorn Tile 2', type: 'Creature', speciesId: 'psyhorn', groupId: 'red' },
-  { index: 24, name: 'Psyhorn Tile 3', type: 'Creature', speciesId: 'psyhorn', groupId: 'red' },
-  { index: 25, name: 'Gym 5 - Soul', type: 'Gym', gymTier: 5, gymElement: 'Ghost' },
-  { index: 26, name: 'Shadowrak Tile 1', type: 'Creature', speciesId: 'shadowrak', groupId: 'yellow' },
-  { index: 27, name: 'Shadowrak Tile 2', type: 'Creature', speciesId: 'shadowrak', groupId: 'yellow' },
+  { index: 23, name: 'Mindpup Ridge', type: 'Creature', speciesId: 'mindpup', groupId: 'red' },
+  { index: 24, name: 'Psyclopse Temple', type: 'Creature', speciesId: 'psyhorn', groupId: 'red' },
+  { index: 25, name: 'Gym 5 - Sludge', type: 'Gym', gymTier: 5, gymElement: 'Poison' },
+  { index: 26, name: 'Shadowrak Den', type: 'Creature', speciesId: 'shadowrak', groupId: 'yellow' },
+  { index: 27, name: 'Duskclaw Abyss', type: 'Creature', speciesId: 'duskclaw', groupId: 'yellow' },
   { index: 28, name: 'Wild Encounter', type: 'Wild' },
-  { index: 29, name: 'Gym 6 - Marsh', type: 'Gym', gymTier: 6, gymElement: 'Poison' },
+  { index: 29, name: 'Gym 6 - Mind', type: 'Gym', gymTier: 6, gymElement: 'Psychic' },
 
   // CORNER
   { index: 30, name: 'Lost in an Adventure', type: 'Corner' },
 
-  // SIDE 4 (Right column conceptually, top to bottom 31-39)
-  { index: 31, name: 'Glacieon Tile 1', type: 'Creature', speciesId: 'glacieon', groupId: 'green' },
-  { index: 32, name: 'Glacieon Tile 2', type: 'Creature', speciesId: 'glacieon', groupId: 'green' },
+  // SIDE 4 (Right column, top to bottom 31-39)
+  { index: 31, name: 'Glacieon Glacier', type: 'Creature', speciesId: 'glacieon', groupId: 'green' },
+  { index: 32, name: 'Frosbeast Summit', type: 'Creature', speciesId: 'frosbeast', groupId: 'green' },
   { index: 33, name: 'Trainer\'s Journal', type: 'Event', eventDeck: 'Journal' },
-  { index: 34, name: 'Glacieon Tile 3', type: 'Creature', speciesId: 'glacieon', groupId: 'green' },
-  { index: 35, name: 'Gym 7 - Volcano', type: 'Gym', gymTier: 7, gymElement: 'Fire' },
-  { index: 36, name: 'Dracoveil Tile 1', type: 'Creature', speciesId: 'dracoveil', groupId: 'darkBlue' },
+  { index: 34, name: 'Avalanche Peak', type: 'Creature', speciesId: 'glacieon', groupId: 'green' },
+  { index: 35, name: 'Gym 7 - Flare', type: 'Gym', gymTier: 7, gymElement: 'Fire' },
+  { index: 36, name: 'Dracoveil Nest', type: 'Creature', speciesId: 'dracoveil', groupId: 'darkBlue' },
   { index: 37, name: 'Elite Trainer Tax', type: 'Tax', taxAmount: 200 },
-  { index: 38, name: 'Dracoveil Tile 2', type: 'Creature', speciesId: 'dracoveil', groupId: 'darkBlue' },
-  { index: 39, name: 'Gym 8 - Earth', type: 'Gym', gymTier: 8, gymElement: 'Ground' },
+  { index: 38, name: 'Wyrmlet Cavern', type: 'Creature', speciesId: 'wyrmlet', groupId: 'darkBlue' },
+  { index: 39, name: 'Gym 8 - Seismic', type: 'Gym', gymTier: 8, gymElement: 'Ground' },
 ];
-
-import { CREATURES } from './creatures';
 
 export const generateBoard = (randomCreatureTiles: boolean): BoardSpace[] => {
   if (!randomCreatureTiles) {
@@ -104,13 +103,102 @@ export const generateBoard = (randomCreatureTiles: boolean): BoardSpace[] => {
       const chosenSpecies = CREATURES[chosenSpeciesId];
       if (chosenSpecies) {
         const creatureName = chosenSpecies.baseForm.name;
-        const tileNumberMatch = space.name.match(/Tile \d+/);
-        const suffix = tileNumberMatch ? tileNumberMatch[0] : '';
+        const tileNumberMatch = space.name.match(/(Meadow|Glade|Grove|Outpost|Alakazam|Burrow|Tunnel|Ash-Vent|Crater|Ridge|Temple|Den|Abyss|Glacier|Summit|Peak|Nest|Cavern)/);
+        const suffix = tileNumberMatch ? tileNumberMatch[0] : 'Tile';
         const name = `${creatureName} ${suffix}`.trim();
         return {
           ...space,
           name,
           speciesId: chosenSpeciesId
+        };
+      }
+    }
+    return space;
+  });
+};
+
+// --- Single Player Campaign Boards Generator ---
+export const CAMPAIGN_CHAPTERS = [
+  {
+    chapter: 1,
+    title: 'Chapter 1: The Molten Caverns',
+    theme: 'volcanic',
+    description: 'Brave the subterranean magma chambers. The ground shakes and ash chokes the air. Only Earth and Fire elements survive here.',
+    goal: 'Own all Brown and Light Blue properties, or bankrupt your rivals.',
+    startingTp: 1500,
+    opponents: [
+      { name: 'Rocky (Rival)', color: '#ef4444', isCpu: true },
+      { name: 'Ignis (Rival)', color: '#f97316', isCpu: true }
+    ],
+    creaturePool: ['terravore', 'digmole', 'pyrowl', 'pyroshell', 'pebbleton', 'volcanis']
+  },
+  {
+    chapter: 2,
+    title: 'Chapter 2: The Electric Woodlands',
+    theme: 'forest-electric',
+    description: 'Navigate a mystical forest charging with static storms. Grass and Electric beasts are thriving in this high-voltage environment.',
+    goal: 'Earn 3,000 Trainer Points (TP) to power up the woodland beacon.',
+    startingTp: 1200,
+    opponents: [
+      { name: 'Flora (Rival)', color: '#22c55e', isCpu: true },
+      { name: 'Sparky (Rival)', color: '#eab308', isCpu: true }
+    ],
+    creaturePool: ['lumibulb', 'leafawn', 'voltpaw', 'sparkitten', 'caterpinch', 'venoshock']
+  },
+  {
+    chapter: 3,
+    title: 'Chapter 3: The Frozen Abyssal Sea',
+    theme: 'aquatic-glacial',
+    description: 'Sail through freezing glaciers and deep trenches. Dark waters hide terrifying Ice and Water creatures.',
+    goal: 'Earn 4 Gym Badges to unlock the path through the iceberg peaks.',
+    startingTp: 1000,
+    opponents: [
+      { name: 'Marina (Rival)', color: '#3b82f6', isCpu: true },
+      { name: 'Duskclaw (Rival)', color: '#6b7280', isCpu: true }
+    ],
+    creaturePool: ['glacieon', 'frosbeast', 'aquaflow', 'phantomin', 'shadowgeist', 'hydradrac']
+  },
+  {
+    chapter: 4,
+    title: 'Chapter 4: The Sky Sanctuary',
+    theme: 'celestial',
+    description: 'Ascend to the ancient clouds where legendary Dragons and Psychic deities nest. Face the ultimate test of strength.',
+    goal: 'Defeat Champion Alden at the Arena and claim victory.',
+    startingTp: 1500,
+    opponents: [
+      { name: 'Champion Alden', color: '#a855f7', isCpu: true },
+      { name: 'Sky-Watcher (Rival)', color: '#14b8a6', isCpu: true }
+    ],
+    creaturePool: ['dracoveil', 'wyrmlet', 'psyhorn', 'mindpup', 'mythicor', 'aerozor', 'steelodon']
+  }
+];
+
+export const generateCampaignBoard = (chapter: number): BoardSpace[] => {
+  const chapterConfig = CAMPAIGN_CHAPTERS.find(c => c.chapter === chapter) || CAMPAIGN_CHAPTERS[0];
+  const pool = chapterConfig.creaturePool;
+  
+  // We customize the board layout by filling creature spaces with creatures from the chapter's element pool
+  return BOARD_SPACES.map((space, i) => {
+    if (space.type === 'Creature') {
+      // Pick a creature from the pool based on the index or color group to ensure variety
+      const poolIndex = Math.abs(i * 3 + chapter) % pool.length;
+      const speciesId = pool[poolIndex];
+      const species = CREATURES[speciesId];
+      if (species) {
+        let nameSuffix = 'Tile';
+        if (space.groupId === 'brown') nameSuffix = 'Cave';
+        else if (space.groupId === 'lightBlue') nameSuffix = 'Volcano';
+        else if (space.groupId === 'pink') nameSuffix = 'Grove';
+        else if (space.groupId === 'orange') nameSuffix = 'Station';
+        else if (space.groupId === 'red') nameSuffix = 'Shrine';
+        else if (space.groupId === 'yellow') nameSuffix = 'Shadow';
+        else if (space.groupId === 'green') nameSuffix = 'Frost';
+        else if (space.groupId === 'darkBlue') nameSuffix = 'Lair';
+
+        return {
+          ...space,
+          name: `${species.baseForm.name} ${nameSuffix}`,
+          speciesId: species.id,
         };
       }
     }
